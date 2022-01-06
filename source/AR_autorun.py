@@ -1,5 +1,6 @@
 import antenneregisterparser
 import CleaningAndLoadingData
+import TDTableInserts
 import time
 from datetime import datetime
 
@@ -11,6 +12,7 @@ def main():
     print('Starting parsing and loading process at {0}.'.format(now))
     antenneregisterparser.main()
     CleaningAndLoadingData.main()
+    TDTableInserts.main()
     now = datetime.today()
     f.write('Parsing and loading process finished at {0}. \n'.format(now))
     t1 = time.time()

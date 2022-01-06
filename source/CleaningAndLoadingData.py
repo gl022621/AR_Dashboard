@@ -219,8 +219,8 @@ def main():
     # pastDate = datetime.strptime('20210228', '%Y%m%d')
     # print(pastDate)
 
-    # dt = datetime.today()
-    dt = datetime.strptime('20211227', '%Y%m%d')
+    dt = datetime.today()
+    # dt = datetime.strptime('20211227', '%Y%m%d')
 
     fileDirectory = 'D:\\Giorgi\\Antenneregister'
     outputDirectory = 'D:\\Giorgi\\Antenneregister\\QV file'
@@ -228,7 +228,7 @@ def main():
     outputfileName = 'final_all_opt_{0}.csv'.format(dt.strftime('%Y%m%d'))
     # fileNameAll = 'all_20180104.csv'
 
-    print(os.path.join(outputDirectory, outputfileName))
+    # print(os.path.join(outputDirectory, outputfileName))
 
     df = pd.DataFrame()
 
@@ -238,7 +238,7 @@ def main():
     # list_of_files = recent_file_list_in_directory(fileDirectory, today)
     list_of_files = recent_file_list_in_directory(fileDirectory, dt)
     # list_of_files = ['OverigMobile_opt_20210518.csv']
-    print(list_of_files)
+    # print(list_of_files)
     # print(len(list_of_files))
 
     for name in list_of_files:
@@ -406,22 +406,22 @@ def main():
     df = df.drop_duplicates()
     print(df.head())
     # print(os.path.join(outputDirectory, outputfileName))
-    # df[df.HOOFDSOORT != 'OVERIGMOBIEL'].to_csv(os.path.join(outputDirectory, outputfileName), index=False, quoting=csv.QUOTE_ALL)
-    # df[df.HOOFDSOORT == 'OVERIGMOBIEL'].to_csv(os.path.join(outputDirectory,'OVERIGMOBIEL.csv'), index=False, quoting=csv.QUOTE_ALL)
+    df[df.HOOFDSOORT != 'OVERIGMOBIEL'].to_csv(os.path.join(outputDirectory, outputfileName), index=False, quoting=csv.QUOTE_ALL)
+    df[df.HOOFDSOORT == 'OVERIGMOBIEL'].to_csv(os.path.join(outputDirectory,'OVERIGMOBIEL.csv'), index=False, quoting=csv.QUOTE_ALL)
 
-    # host = "prohadoope01.ux.nl.tmo"
-    # username = "antenna_registry"
-    # password = "Karidia123!"
-    #
-    # local_path = os.path.join(outputDirectory, outputfileName)
-    # remote_in_progress_path = "/IN_PROGRESS/{}".format(outputfileName)
-    # remote_final_path = "/FINAL/{}".format(outputfileName)
-    #
-    # cnopts = pysftp.CnOpts()
-    # cnopts.hostkeys = None
-    # with pysftp.Connection(host=host, username=username, password=password, cnopts=cnopts) as sftp:
-    #     sftp.put(local_path, remote_in_progress_path)
-    #     sftp.rename(remote_in_progress_path, remote_final_path)
+    host = "prohadoope01.ux.nl.tmo"
+    username = "antenna_registry"
+    password = "Karidia123!"
+
+    local_path = os.path.join(outputDirectory, outputfileName)
+    remote_in_progress_path = "/IN_PROGRESS/{}".format(outputfileName)
+    remote_final_path = "/FINAL/{}".format(outputfileName)
+
+    cnopts = pysftp.CnOpts()
+    cnopts.hostkeys = None
+    with pysftp.Connection(host=host, username=username, password=password, cnopts=cnopts) as sftp:
+        sftp.put(local_path, remote_in_progress_path)
+        sftp.rename(remote_in_progress_path, remote_final_path)
 
     df = df.replace({np.nan: None})
 
@@ -437,7 +437,7 @@ def main():
             "DELETE FROM DL_NETWORK_GEN.ARDashboard WHERE Load_date = '{0}';".format(dt.strftime('%Y-%m')))
 
         # print(df_to_load.shape)
-        chunk_size = 35000
+        chunk_size = 33000
         chunks = [df_to_load[i:i + chunk_size][:] for i in range(0, df_to_load.shape[0], chunk_size)]
 
         for df_n in chunks:
@@ -448,55 +448,6 @@ def main():
                                    , data
                                    , batch=True
                                    )
-
-
-
-    # db = 'DL_NETWORK_GEN'
-    # table = "test"
-    # host, user, pwd = 'prdcop1.ux.nl.tmo', 'ID022621', 'Saqartvelo!!15'
-    # td_engine = create_engine('teradata://' + user + ':' + pwd + '@' + host + ':22/' + db)
-
-    # # td_engine = create_engine(
-    # #     f'teradata://{user}:{pwd}@{host}/?database={database}&driver=Teradata Database ODBC Driver 16.20')
-    # # conn = td_engine.connect()
-    # # df.head().to_sql(name=table, con=conn, index=False, if_exists='replace')
-    # # conn.close()
-    #
-    #
-    #
-    # conn = td_engine.connect()
-    # df[df.HOOFDSOORT != 'OVERIGMOBIEL'].to_sql(
-    #     name='ARdashboard',
-    #     # name='test',
-    #     con=td_engine,
-    #     if_exists='append',
-    #     index=False,
-    #     method='multi',
-    #     dtype={'DATUM_INGEBRUIKNAME': types.NVARCHAR(20),
-    #          'GEMNAAM': types.NVARCHAR(50),
-    #          'HOOFDSOORT': types.NVARCHAR(20),
-    #          'SAT_CODE': types.NVARCHAR(20),
-    #          'WOONPLAATSNAAM': types.NVARCHAR(50),
-    #          'postcode': types.NVARCHAR(6),
-    #          'x': types.INT,
-    #          'y': types.INT,
-    #          'Hoogte': types.NUMERIC(precision=10, scale=3),
-    #          'Hoofdstraalrichting': types.NVARCHAR(20),
-    #          'Frequentie': types.NVARCHAR(20),
-    #          'Vermogen': types.NUMERIC(precision=10, scale=3),
-    #          'Veilige afstand': types.NUMERIC(precision=10, scale=3),
-    #          'Frequentie1': types.NUMERIC(precision=10, scale=3),
-    #          'Frequentie2': types.NUMERIC(precision=10, scale=3),
-    #          'Technology': types.NVARCHAR(10),
-    #          'Operator': types.NVARCHAR(20),
-    #          'Band': types.NVARCHAR(20),
-    #          'Outdoor_Macro': types.NVARCHAR(5),
-    #          'Load_Date': types.NVARCHAR(20),
-    #          'lat': types.NUMERIC(precision=25, scale=15),
-    #          'lon': types.NUMERIC(precision=25, scale=15)
-    #          }
-    #          )
-    # conn.close()
 
 
 if __name__ == '__main__':
