@@ -9,9 +9,9 @@ import pysftp
 # import teradata
 # import keyring
 # import getpass
-from sqlalchemy import create_engine, types
-from sqlalchemy import create_engine
-import sqlalchemy_teradata
+# from sqlalchemy import create_engine, types
+# from sqlalchemy import create_engine
+# import sqlalchemy_teradata
 # import sqlalchemy_teradata
 # import time
 # import antenneregisterparse
