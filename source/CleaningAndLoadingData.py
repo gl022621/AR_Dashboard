@@ -212,7 +212,7 @@ def main():
     GHz_to_MHz('3598 MHz')
     desired_width = 320
     pd.set_option('display.width', desired_width)
-    pd.set_option('display.max_columns', 20)
+    pd.set_option('display.max_columns', 40)
 
     # today = datetime.today()
     # print(today)
@@ -220,7 +220,7 @@ def main():
     # print(pastDate)
 
     dt = datetime.today()
-    # dt = datetime.strptime('20211227', '%Y%m%d')
+    # dt = datetime.strptime('20220327', '%Y%m%d')
 
     fileDirectory = 'D:\\Giorgi\\Antenneregister'
     outputDirectory = 'D:\\Giorgi\\Antenneregister\\QV file'
@@ -238,7 +238,7 @@ def main():
     # list_of_files = recent_file_list_in_directory(fileDirectory, today)
     list_of_files = recent_file_list_in_directory(fileDirectory, dt)
     # list_of_files = ['OverigMobile_opt_20210518.csv']
-    # print(list_of_files)
+    print(list_of_files)
     # print(len(list_of_files))
 
     for name in list_of_files:
@@ -408,29 +408,44 @@ def main():
     # print(os.path.join(outputDirectory, outputfileName))
     df[df.HOOFDSOORT != 'OVERIGMOBIEL'].to_csv(os.path.join(outputDirectory, outputfileName), index=False, quoting=csv.QUOTE_ALL)
     df[df.HOOFDSOORT == 'OVERIGMOBIEL'].to_csv(os.path.join(outputDirectory,'OVERIGMOBIEL.csv'), index=False, quoting=csv.QUOTE_ALL)
-
-    host = "prohadoope01.ux.nl.tmo"
-    username = "antenna_registry"
-    password = "Karidia123!"
-
-    local_path = os.path.join(outputDirectory, outputfileName)
-    remote_in_progress_path = "/IN_PROGRESS/{}".format(outputfileName)
-    remote_final_path = "/FINAL/{}".format(outputfileName)
-
-    cnopts = pysftp.CnOpts()
-    cnopts.hostkeys = None
-    with pysftp.Connection(host=host, username=username, password=password, cnopts=cnopts) as sftp:
-        sftp.put(local_path, remote_in_progress_path)
-        sftp.rename(remote_in_progress_path, remote_final_path)
+    print('Data cleaned and stored localy in csv file')
 
     df = df.replace({np.nan: None})
 
     df_to_load = df[df.HOOFDSOORT != 'OVERIGMOBIEL']
 
-    host, user, pwd, db = 'prdcop1.ux.nl.tmo', 'ID022621', 'Saqartvelo!!15', 'DL_NETWORK_GEN'
+    # print(os.path.join(outputDirectory, outputfileName))
+    # df_to_load = pd.read_csv(os.path.join(outputDirectory, outputfileName))
+    # print(df_to_load.dtypes)
+    # df_to_load = df_to_load.replace({np.nan: None})
+    host, user, pwd, db = 'prdcop1.ux.nl.tmo', 'ID022621', 'Saqartvelo!!16', 'DL_NETWORK_GEN'
     # print(pwd)
+    df_to_load = df_to_load[[
+        "DATUM_INGEBRUIKNAME",
+        "GEMNAAM",
+        "HOOFDSOORT",
+        "SAT_CODE",
+        "WOONPLAATSNAAM",
+        "postcode",
+        "x",
+        "y",
+        "Hoogte",
+        "Hoofdstraalrichting",
+        "Frequentie",
+        "Vermogen",
+        "Veilige afstand",
+        "Frequentie1",
+        "Frequentie2",
+        "Technology",
+        "Operator",
+        "Band",
+        "Outdoor_Macro",
+        "Load_Date",
+        "lat",
+        "lon"]]
 
-    #  Establish the connection to the Teradata database
+    print('Trying to store cleaned data into teradata table')
+    # Establish the connection to the Teradata database
     udaExec = teradata.UdaExec(appName="AR_deshboard", version="1.0", logConsole=False)
     with udaExec.connect(method="odbc", system=host, username=user, password=pwd, charset='UTF8') as connection:
         connection.execute(
@@ -443,12 +458,29 @@ def main():
         for df_n in chunks:
             # print(df_n)
             data = [tuple(x) for x in df_n.to_records(index=False)]
+            # print(data)
         # connection.execute("DELETE FROM DL_NETWORK_GEN.ARDashboard WHERE Load_date = '{0}';".format(dt.strftime('%Y-%m')))
             connection.executemany('INSERT INTO DL_NETWORK_GEN.ARDashboard values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);'
                                    , data
                                    , batch=True
                                    )
 
+
+    host = "prohadoope02.ux.nl.tmo"
+    username = "antenna_registry"
+    password = "Karidia123!"
+
+    local_path = os.path.join(outputDirectory, outputfileName)
+    remote_in_progress_path = "/IN_PROGRESS/{}".format(outputfileName)
+    remote_final_path = "/FINAL/{}".format(outputfileName)
+
+    print('Trying to store cleaned data on sftp location')
+    cnopts = pysftp.CnOpts()
+    cnopts.hostkeys = None
+    with pysftp.Connection(host=host, username=username, password=password, cnopts=cnopts) as sftp:
+        sftp.put(local_path, remote_in_progress_path)
+        sftp.rename(remote_in_progress_path, remote_final_path)
+    print('Data stored on sftp location')
 
 if __name__ == '__main__':
     main()

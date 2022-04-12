@@ -119,9 +119,18 @@ def url_response(session, url):
     """
     headers = {'User-Agent': user_agent_string('')}
     # request the URL and parse the JSON
-    response = session.get(url, headers=headers)
-    # response.raise_for_status() # raise exception if invalid response
-    return response.json()
+    try:
+        response = session.get(url, headers=headers)
+        out = response.json()
+    except requests.exceptions.Timeout:
+        print('Timeout Error for url={0}'.format(url))
+        out = {'results': []}
+    except requests.exceptions.ConnectionError:
+        print('Connection Error for url={0}'.format(url))
+        out = {'results': []}
+
+    print(response.json())
+    return out
 
 
 def list_of_locations(xmin, xmax, ylist, eps, layerstring):
@@ -142,7 +151,12 @@ def list_of_locations(xmin, xmax, ylist, eps, layerstring):
         ymax = ylist[i+1]
         # URL definition
         url =url_generator(xmin, xmax, ymin, ymax, eps, layerstring)
-        # print(url)
+        print(i, ': ', url)
+
+        if i%100==0:
+            print('sleeping for 10sec')
+            time.sleep(10)
+
 
         inputLocs = url_response(s, url)['results']
         # print(inputLocs)
@@ -296,7 +310,7 @@ def main():
 
     # removing duplicates from above dataframe
     dfIDs = dfIDsDubs.drop_duplicates()
-    # print(dfIDs)
+    print(dfIDs)
 
     # writing above dataframe into a file
     save_df_in_csv(dfIDs,fileDirectory, fileNameIDs)

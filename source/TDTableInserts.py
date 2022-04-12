@@ -40,7 +40,7 @@ def main():
 
     host = 'prdcop1.ux.nl.tmo'
     username = 'ID022621'
-    password = 'Saqartvelo!!15'
+    password = 'Saqartvelo!!16'
 
     udaExec = teradata.UdaExec(appName="AR_deshboard", version="1.0", logConsole=False)
     with udaExec.connect(method="odbc", system=host, username=username, password=password) as connect:

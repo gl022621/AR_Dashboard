@@ -1,0 +1,6 @@
+Starting parsing and loading process at 2022-02-02 17:25:18.857823. 
+Starting parsing and loading process at 2022-02-28 15:24:18.295671. 
+Starting parsing and loading process at 2022-02-28 15:41:01.614210. 
+Starting parsing and loading process at 2022-02-28 16:21:58.635361. 
+Starting parsing and loading process at 2022-02-28 16:36:39.433042. 
+Starting parsing and loading process at 2022-03-29 09:17:00.355944. 
