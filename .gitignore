@@ -2,3 +2,7 @@
 source/logs
 source/.runNumber
 source/__pycache__/
+source/test*
+source/woonplaats*
+
+test
