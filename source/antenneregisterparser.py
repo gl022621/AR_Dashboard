@@ -10,6 +10,7 @@ import pandas as pd
 import requests
 import time
 from datetime import datetime
+import random
 
 desired_display_width=320
 desired_columns = 20
@@ -104,7 +105,9 @@ def user_agent_string(tech):
         'UMTS': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
         'GSM': 'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) like Gecko',
         'IoT': 'Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16',
-        'OverigMobile': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36'
+        'OverigMobile': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36',
+        'VasteVerb': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Safari/605.1.15',
+        'Omroep': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.61/63 Safari/537.36 Edg/100.0.1185.39'
     }.get(tech, 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
 
 def url_response(session, url):
@@ -153,12 +156,26 @@ def list_of_locations(xmin, xmax, ylist, eps, layerstring):
         url =url_generator(xmin, xmax, ymin, ymax, eps, layerstring)
         print(i, ': ', url)
 
-        if i%100==0:
-            print('sleeping for 10sec')
-            time.sleep(10)
+        if i%1000==0:
+            n_random = random.randint(50, 60)
+            print('sleeping for {}sec'.format(n_random))
+            time.sleep(n_random)
+        elif i%100==0:
+            n_random=random.randint(5, 15)
+            print('sleeping for {}sec'.format(n_random))
+            time.sleep(n_random)
 
+        response =  url_response(s, url)
+        while 'error' in response:
+            n_random = random.randint(100, 150)
+            print('error, sleeping for {}sec'.format(n_random))
+            time.sleep(n_random)
+            response = url_response(s, url)
 
-        inputLocs = url_response(s, url)['results']
+        inputLocs =response['results']
+
+        # inputLocs =['results']
+
         # print(inputLocs)
 
         for x in inputLocs: # loop to get all the antenna ids and add them into list
@@ -224,7 +241,9 @@ def url_string(tech, id):
         'UMTS':         'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/4/datalinks/DETAILS2_UMTS/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
         'GSM':          'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/1/datalinks/DETAILS_GSM/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
         'IoT':          'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/23/datalinks/DETAILS2_WIMAX/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
-        'OverigMobile': 'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/22/datalinks/DETAILS_OVERIG/link?maxRecords=&pff_ID={0}&f=json#'.format(id)
+        'OverigMobile': 'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/23/datalinks/DETAILS2_OVER/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
+        'VasteVerb':    'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/20/datalinks/DETAILS2_VAST/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
+        'Omroep':       'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/14/datalinks/DETAILS2_OMROEP/link?maxRecords=&pff_ID={0}&f=json#'.format(id)
     }.get(tech, 'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/7/datalinks/DETAILS_LTE/link?maxRecords=&pff_ID={0}&f=json#'.format(id))
 
 
@@ -276,7 +295,10 @@ def main():
     lteLayer = 8
     # nbiotLayer = 23
     nrLayer=11
-    OverigMobileLayer = 22
+    tdabLayer = 14
+    zmLayer = 16
+    vvLayer = 20
+    OverigMobileLayer = 23
 
     # definition of vertices of rectangle that fully covers the Netherlands on the Antennaregister map
     xMin = 10400
@@ -287,13 +309,21 @@ def main():
     # number of small rectangles that we split above big rectangle
     # yDelta = 3950
     # yDelta = 6320
-    yDelta = 7900
-    # yDelta = 2
+    # yDelta = 7900
+    yDelta = 12000
     epsilon = 1
 
     yList = equally_split_list(yMin, yMax+1, yDelta)
 
-    layerString = layers(gsmLayer, umtsLayer, lteLayer, nrLayer, OverigMobileLayer)
+    layerString = layers(
+        gsmLayer
+        , umtsLayer
+        , lteLayer
+        , nrLayer
+        , tdabLayer
+        , zmLayer
+        , vvLayer
+        , OverigMobileLayer)
     # layerString = layers(gsmLayer)
     # print(layerString)
     # layerString = layers(gsmLayer,umtsLayer)
@@ -327,6 +357,12 @@ def main():
     # df_IoT = dfIDs[dfIDs.HOOFDSOORT == 'IoT']
     df_NR = dfIDs[dfIDs.HOOFDSOORT == '5G NR']
     df_OM = dfIDs[dfIDs.HOOFDSOORT == 'OVERIGMOBIEL']
+    df_TDAB = dfIDs[dfIDs.HOOFDSOORT == 'OMROEP']
+    df_ZM = dfIDs[dfIDs.HOOFDSOORT == 'ZENDAMATEURS']
+    df_VV = dfIDs[dfIDs.HOOFDSOORT == 'VASTE VERB']
+
+
+    save_df_in_csv(df_ZM, fileDirectory, '{0}_opt_{1}.csv'.format('ZendaMateurs', today.strftime('%Y%m%d')))
 
     dfList = {
         'LTE': df_LTE
@@ -335,6 +371,9 @@ def main():
         # , 'IoT': df_IoT
         , 'NR':df_NR
         , 'OverigMobile': df_OM
+        , 'Omroep': df_TDAB
+        # , 'ZendaMateurs': df_ZM
+        , 'VasteVerb': df_VV
     }
 
     # print(dfList)

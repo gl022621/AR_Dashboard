@@ -6,6 +6,7 @@ import re
 from datetime import datetime, timedelta
 import teradata
 import pysftp
+import jaydebeapi
 # import teradata
 # import keyring
 # import getpass
@@ -201,6 +202,7 @@ def GHz_to_MHz(row):
         else:
             # print(str(int(1000 * float(row))) + ' MHz')
             row = str(int(float(row)/1000)) + ' MHz'
+    # print(row)
     return row
 
 
@@ -220,12 +222,17 @@ def main():
     # print(pastDate)
 
     dt = datetime.today()
-    # dt = datetime.strptime('20220327', '%Y%m%d')
+    # dt = datetime.strptime('20221129', '%Y%m%d')
 
     fileDirectory = 'D:\\Giorgi\\Antenneregister'
     outputDirectory = 'D:\\Giorgi\\Antenneregister\\QV file'
     # outputfileName = 'final_all_opt_{0}.csv'.format(today.strftime('%Y%m%d'))
-    outputfileName = 'final_all_opt_{0}.csv'.format(dt.strftime('%Y%m%d'))
+    outputFileNameMain = 'final_all_opt_{0}.csv'.format(dt.strftime('%Y%m%d'))
+    outputFileNameOM = 'OVERIGMOBIEL_{0}.csv'.format(dt.strftime('%Y%m%d'))
+    outputFileNameVV = 'VASTEVERB_{0}.csv'.format(dt.strftime('%Y%m%d'))
+    outputFileNameO = 'OMROEP_{0}.csv'.format(dt.strftime('%Y%m%d'))
+
+
     # fileNameAll = 'all_20180104.csv'
 
     # print(os.path.join(outputDirectory, outputfileName))
@@ -240,14 +247,17 @@ def main():
     # list_of_files = ['OverigMobile_opt_20210518.csv']
     print(list_of_files)
     # print(len(list_of_files))
+    # print()
 
-    for name in list_of_files:
+    for name in [x for x in list_of_files if "Zenda" not in x]:
         # print(os.path.join(fileDirectory, name))
-        df_current = pd.read_csv(os.path.join(fileDirectory, name), encoding='latin1')
+        df_current = pd.read_csv(os.path.join(fileDirectory, name), encoding='utf8')
         # print(df_current.head())
         if ~df_current.empty:
             df = pd.concat([df, df_current],sort=False)
         # print(df.head())
+
+    print(df.loc[df.postcode == '8501BA',])
 
     # print(recent_file_list_in_directory(fileDirectory, pastDate))
     # for name in recent_file_list_in_directory(fileDirectory, pastDate):
@@ -367,12 +377,17 @@ def main():
     #################################################################
     ##df = pd.read_csv(os.path.join(fileDirectory, fileNameAll), encoding='latin1')
     ##print(df)
+    # df=df.head(n=100)
 
     df['Hoogte'] = df['Hoogte'].str.replace(' m', '').astype(float) if 'Hoogte' in df.columns else None
     df['Hoofdstraalrichting'] = df['Hoofdstraalrichting'].str.replace(' gr', '') if 'Hoofdstraalrichting' in df.columns else None
+    # print(df.loc[df.Frequentie.isnull(),])
     df['Frequentie'] = df['Frequentie'].apply(lambda x: GHz_to_MHz(x))
     df['Frequentie'] = df['Frequentie'].str.replace(' MHz', '')
-    # print(df.Frequentie)
+    # df.to_csv("test.csv")
+    # print(df.loc[df.Vermogen=='Niet aanwezig',])
+    df['Vermogen'] = df.Vermogen.mask(df.Vermogen=='Niet aanwezig') #if 'Vermogen' in df.columns else None
+    # print(df.loc[df.Vermogen.isna(),])
     df['Vermogen'] = df['Vermogen'].str.replace(' dBW', '').astype(float) if 'Vermogen' in df.columns else None
     # df['Veilige afstand'] = df['Veilige afstand'].str.replace(' m', '').astype(float)
     df['Veilige afstand'] = df['Veilige afstand'].str.replace(' m', '').astype(float) if 'Veilige afstand' in df.columns else None
@@ -399,26 +414,73 @@ def main():
     df['lat'] = df.apply(lat, axis=1)
     df['lon'] = df.apply(lon, axis=1)
 
-    # print(df)
+    # print(df.head())
 
-    df.drop(['SHAPE', 'Samenvatting', 'OBJECTID', 'id', 'DATUM_PLAATSING'], inplace=True, axis=1)
+    df.drop([
+        'SHAPE'
+        , 'Samenvatting'
+        # , 'OBJECTID'
+        # , 'id'
+        # , 'DATUM_PLAATSING'
+        # , 'DATUM_LAATSTE_AANPASSING'
+        # , 'SMALL_CELL_INDICATOR'
+    ], inplace=True, axis=1)
+
+    # print(df.columns)
+    df=df[[
+        "SAT_CODE",
+        "WOONPLAATSNAAM",
+        "DATUM_INGEBRUIKNAME",
+        "HOOFDSOORT",
+        "GEMNAAM",
+        "x",
+        "y",
+        "postcode",
+        "Hoogte",
+        "Hoofdstraalrichting",
+        "Frequentie",
+        "Vermogen",
+        "Veilige afstand",
+        "Frequentie1",
+        "Frequentie2",
+        "Technology",
+        "Operator",
+        "Band",
+        "Outdoor_Macro",
+        "Load_Date",
+        "lat",
+        "lon",
+        "OBJECTID",
+        "id",
+        "DATUM_PLAATSING",
+        "DATUM_LAATSTE_AANPASSING",
+        "SMALL_CELL_INDICATOR"
+    ]]
 
     df = df.drop_duplicates()
-    print(df.head())
+    df["SMALL_CELL_INDICATOR"] = df["SMALL_CELL_INDICATOR"].replace({'Null': None})
+    df["DATUM_LAATSTE_AANPASSING"] = df["DATUM_LAATSTE_AANPASSING"].replace({'Null': None})
+
+    # print(df.head())
     # print(os.path.join(outputDirectory, outputfileName))
-    df[df.HOOFDSOORT != 'OVERIGMOBIEL'].to_csv(os.path.join(outputDirectory, outputfileName), index=False, quoting=csv.QUOTE_ALL)
-    df[df.HOOFDSOORT == 'OVERIGMOBIEL'].to_csv(os.path.join(outputDirectory,'OVERIGMOBIEL.csv'), index=False, quoting=csv.QUOTE_ALL)
+    df.loc[~df.HOOFDSOORT.str.contains('|'.join(['OVERIGMOBIEL', 'VASTE VERB', 'OMROEP'])),].to_csv(os.path.join(outputDirectory, outputFileNameMain), index=False, quoting=csv.QUOTE_ALL)
+    df.loc[df.HOOFDSOORT == 'OMROEP',].to_csv(os.path.join(outputDirectory,outputFileNameO), index=False, quoting=csv.QUOTE_ALL)
+    df.loc[df.HOOFDSOORT == 'VASTE VERB',].to_csv(os.path.join(outputDirectory,outputFileNameVV), index=False, quoting=csv.QUOTE_ALL)
+    df.loc[df.HOOFDSOORT == 'OVERIGMOBIEL',].to_csv(os.path.join(outputDirectory,outputFileNameOM), index=False, quoting=csv.QUOTE_ALL)
     print('Data cleaned and stored localy in csv file')
 
     df = df.replace({np.nan: None})
 
-    df_to_load = df[df.HOOFDSOORT != 'OVERIGMOBIEL']
+    df_to_load =  df.loc[~df.HOOFDSOORT.str.contains('|'.join(['OVERIGMOBIEL', 'VASTE VERB', 'OMROEP'])),]
+    # df_to_load = df[df.HOOFDSOORT != 'OVERIGMOBIEL']
+
+
 
     # print(os.path.join(outputDirectory, outputfileName))
     # df_to_load = pd.read_csv(os.path.join(outputDirectory, outputfileName))
     # print(df_to_load.dtypes)
-    # df_to_load = df_to_load.replace({np.nan: None})
-    host, user, pwd, db = 'prdcop1.ux.nl.tmo', 'ID022621', 'Saqartvelo!!16', 'DL_NETWORK_GEN'
+    df_to_load = df_to_load.replace({np.nan: None})
+    # host, user, pwd, db = 'prdcop1.ux.nl.tmo', 'ID022621', 'Saqartvelo!!19', 'DL_NETWORK_GEN'
     # print(pwd)
     df_to_load = df_to_load[[
         "DATUM_INGEBRUIKNAME",
@@ -442,17 +504,39 @@ def main():
         "Outdoor_Macro",
         "Load_Date",
         "lat",
-        "lon"]]
+        "lon",
+        "OBJECTID",
+        "DATUM_PLAATSING",
+        "DATUM_LAATSTE_AANPASSING",
+        "SMALL_CELL_INDICATOR"
+    ]]
 
-    print('Trying to store cleaned data into teradata table')
+    # print(df_to_load.loc[df_to_load.postcode=='8501BA', ])
+    # print(df_to_load.values.tolist())
+    # df_to_load.to_csv(os.path.join(outputDirectory, "file_to_load.csv"), index=False, quoting=csv.QUOTE_ALL)
+
+    # print('Trying to store cleaned data into teradata table')
     # Establish the connection to the Teradata database
+    host = 'prdcop1.ux.nl.tmo'
+    user = 'ID022621'
+    pwd = 'Saqartvelo!!01'
+
     udaExec = teradata.UdaExec(appName="AR_deshboard", version="1.0", logConsole=False)
     with udaExec.connect(method="odbc", system=host, username=user, password=pwd, charset='UTF8') as connection:
         connection.execute(
             "DELETE FROM DL_NETWORK_GEN.ARDashboard WHERE Load_date = '{0}';".format(dt.strftime('%Y-%m')))
-
+        # connection.execute(
+        #     """select
+        #             Load_date
+        #                 ,count(*)
+        #             from DL_NETWORK_GEN.ARdashboard
+        #             group by
+        #             Load_date
+        #             order by
+        #                 Load_date desc;"""
+        # )
         # print(df_to_load.shape)
-        chunk_size = 33000
+        chunk_size = 1000
         chunks = [df_to_load[i:i + chunk_size][:] for i in range(0, df_to_load.shape[0], chunk_size)]
 
         for df_n in chunks:
@@ -460,19 +544,42 @@ def main():
             data = [tuple(x) for x in df_n.to_records(index=False)]
             # print(data)
         # connection.execute("DELETE FROM DL_NETWORK_GEN.ARDashboard WHERE Load_date = '{0}';".format(dt.strftime('%Y-%m')))
-            connection.executemany('INSERT INTO DL_NETWORK_GEN.ARDashboard values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);'
+            connection.executemany('INSERT INTO DL_NETWORK_GEN.ARDashboard values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);'
                                    , data
                                    , batch=True
                                    )
-
-
+    # #
+    # # database = "DL_NETWORK_GEN"
+    # # table = "ARdashboard"
+    # # user = "ID022621"
+    # # password = "Saqartvelo!!19"
+    # # # driver = 'com.teradata.jdbc.TeraDriver'
+    # # driver='{TDWH}'
+    # # # "Driver={Teradata Database ODBC Driver 16.20};Database=DL_NETWORK_GEN;UseDataEncryption=YES;DBCName=prdcop1.ux.nl.tmo;UID=ID049485;PWD=%s"
+    # # conn = jaydebeapi.connect(driver
+    # #                           ,f'jdbc:teradata://prdcop1.ux.nl.tmo/Database={database}'
+    # #                           ,[user, password]
+    # #                           # ,["C:\\Users\\giorgi\\Documents\\TeraJDBC__indep_indep.17.20.00.12\\terajdbc4.jar"]
+    # #                           )
+    # # cursor = conn.cursor()
+    # #
+    # # cursor.executemany(f"""
+    # #         insert into {database}.{table} ("DATUM_INGEBRUIKNAME", "GEMNAAM", "HOOFDSOORT", "SAT_CODE", "WOONPLAATSNAAM",
+    # #                                         "postcode", "x", "y", "Hoogte", "Hoofdstraalrichting", "Frequentie", "Vermogen",
+    # #                                         "Veilige afstand", "Frequentie1", "Frequentie2", "Technology", "Operator",
+    # #                                         "Band", "Outdoor_Macro", "Load_Date", "lat", "lon")
+    # #         values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", df_to_load.values.tolist())
+    # #
+    # # cursor.close()
+    # # conn.close()
+    # #
     host = "prohadoope02.ux.nl.tmo"
     username = "antenna_registry"
     password = "Karidia123!"
 
-    local_path = os.path.join(outputDirectory, outputfileName)
-    remote_in_progress_path = "/IN_PROGRESS/{}".format(outputfileName)
-    remote_final_path = "/FINAL/{}".format(outputfileName)
+    local_path = os.path.join(outputDirectory, outputFileNameMain)
+    remote_in_progress_path = "/IN_PROGRESS/{}".format(outputFileNameMain)
+    remote_final_path = "/FINAL/{}".format(outputFileNameMain)
 
     print('Trying to store cleaned data on sftp location')
     cnopts = pysftp.CnOpts()
