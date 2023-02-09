@@ -6,7 +6,14 @@ import re
 from datetime import datetime, timedelta
 import teradata
 import pysftp
-import jaydebeapi
+import smtplib
+import zipfile
+
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+
+# import jaydebeapi
 # import teradata
 # import keyring
 # import getpass
@@ -17,6 +24,44 @@ import jaydebeapi
 # import time
 # import antenneregisterparse
 
+
+
+
+def send_email_with_attachment(sender, password, recipients, subject, body, file_path=None, cc=None, bcc=None):
+    msg = MIMEMultipart()
+    msg['From'] = sender
+    msg['To'] = ", ".join(recipients)
+    msg['Cc'] = cc
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body))
+
+    if file_path:
+        with zipfile.ZipFile(file_path + '.zip', 'w') as myzip:
+            myzip.write(file_path)
+
+        with open(file_path + '.zip', "rb") as f:
+            part = MIMEApplication(f.read(), Name=os.path.basename(file_path + '.zip'))
+            part['Content-Disposition'] = 'attachment; filename="{}"'.format(os.path.basename(file_path + '.zip'))
+            msg.attach(part)
+
+    if cc and bcc:
+        rcpt = cc + bcc + recipients
+    elif cc:
+        rcpt = cc + recipients
+    elif bcc:
+        rcpt = bcc + recipients
+    else:
+        rcpt = recipients
+
+    print(rcpt)
+
+    smtp = smtplib.SMTP('smtp.gmail.com', 587)
+    smtp.ehlo()
+    smtp.starttls()
+    smtp.login(sender, password)
+    smtp.sendmail(sender, rcpt, msg.as_string())
+    smtp.quit()
 
 ############################ FUNCTIONS ###########################
 def xy_to_latitude(x, y):
@@ -257,7 +302,7 @@ def main():
             df = pd.concat([df, df_current],sort=False)
         # print(df.head())
 
-    print(df.loc[df.postcode == '8501BA',])
+    # print(df.loc[df.postcode == '8501BA',])
 
     # print(recent_file_list_in_directory(fileDirectory, pastDate))
     # for name in recent_file_list_in_directory(fileDirectory, pastDate):
@@ -588,6 +633,18 @@ def main():
         sftp.put(local_path, remote_in_progress_path)
         sftp.rename(remote_in_progress_path, remote_final_path)
     print('Data stored on sftp location')
+
+
+
+    # Example usage
+    send_email_with_attachment(sender='gio.labadze+antenneregister@gmail.com',
+                               password='ghitfworqormtqxl',
+                               recipients=['rob.hormes@t-mobile.nl'],
+                               subject='Antenneregister data',
+                               body='Hi Rob,\nPlease find the attached with the latest Anntenaregister data.\nCheers,\nGiorgi',
+                               file_path=os.path.join(outputDirectory, outputFileNameMain),
+                               bcc=['giorgi.labadze@t-mobile.nl']
+                               )
 
 if __name__ == '__main__':
     main()

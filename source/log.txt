@@ -21,3 +21,13 @@ Parsing and loading process finished at 2022-10-31 13:05:37.396999.
 Whole process took 3 hours and 9.6 minutes. 
 
 
+Starting parsing and loading process at 2022-12-27 20:20:31.167323. 
+Parsing and loading process finished at 2022-12-28 00:01:24.802976. 
+Whole process took 3 hours and 40.9 minutes. 
+
+
+Starting parsing and loading process at 2023-01-27 20:20:29.637349. 
+Parsing and loading process finished at 2023-01-28 00:06:06.026672. 
+Whole process took 3 hours and 45.6 minutes. 
+
+
