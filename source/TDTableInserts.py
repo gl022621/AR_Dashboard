@@ -17,34 +17,69 @@ def main():
 
     shp_path = '../woonplaats_shapefiles/City_population_region.shp'
     df = gpd.read_file(shp_path)
-    df['Population'] = df.Population.astype(int)
+    print(df.dtypes)
+    print(df.memory_usage(deep=True))
+    print(df.select_dtypes(float).describe())
 
-    df = df.rename(columns={"WOONPLAATS": "WOONPLAATS_SF", "GEMNAAM": "GEMNAAM_SF"})
+    df = (df
+     .astype({
+        'Population': 'int32',
+     })
+     .rename(
+        columns = {
+            "WOONPLAATS": "WOONPLAATS_SF"
+            , "GEMNAAM": "GEMNAAM_SF"
+        }
+     )
+     .assign(
+        wp_pop_rank = df.Population.rank(na_option = 'bottom', ascending = False).astype(int),
+        wp_pop_density = df.Population / df.OPP,
+        wp_pop_density_rank=lambda x: (x.wp_pop_density.rank(na_option='bottom', ascending=False).astype(int))
+     )
+    )
 
-    df['wp_pop_rank'] = df['Population'].rank(na_option='bottom', ascending=False).astype(int)
-    df['wp_pop_density'] = df['Population'] / df['OPP']
-    df['wp_pop_density_rank'] = df['wp_pop_density'].rank(na_option='bottom', ascending=False).astype(int)
+    print(df.columns)
+    print(df.head())
 
+    # df['Population'] = df.Population.astype(int)
+    # df = df.rename(columns={"WOONPLAATS": "WOONPLAATS_SF", "GEMNAAM": "GEMNAAM_SF"})
+    #
+    # df['wp_pop_rank'] = df['Population'].rank(na_option='bottom', ascending=False).astype(int)
+    # df['wp_pop_density'] = df['Population'] / df['OPP']
+    # df['wp_pop_density_rank'] = df['wp_pop_density'].rank(na_option='bottom', ascending=False).astype(int)
+    #
     pop_q1 = 0.02
     pop_den_q1 = 0.04
     pop_q2 = 0.13
     pop_den_q2 = 0.13
-    df['gem_type'] = np.where(((df.wp_pop_rank < df.wp_pop_rank.quantile(pop_q1)) & (
-                df.wp_pop_density_rank < df.wp_pop_density_rank.quantile(pop_den_q1)))
+
+    df = (df
+        .assign(
+        gem_type = np.where(((df.wp_pop_rank < df.wp_pop_rank.quantile(pop_q1)) & (df.wp_pop_density_rank < df.wp_pop_density_rank.quantile(pop_den_q1)))
                               , 'Urban'
-                              , np.where(((df.wp_pop_rank > df.wp_pop_rank.quantile(pop_q2)) | (
-                    df.wp_pop_density_rank > df.wp_pop_density_rank.quantile(pop_den_q2)))
+                              , np.where(((df.wp_pop_rank > df.wp_pop_rank.quantile(pop_q2)) | (df.wp_pop_density_rank > df.wp_pop_density_rank.quantile(pop_den_q2)))
                                          , 'Rural'
                                          , 'Sub-urban')
                               )
-    # print('df: ', df.dtypes)
-    # print(df.head(n=100))
-    # print(df.loc[df.GEMNAAM_SF=='De Fryske Marren',])
+    )
+    )
+
+    # df['gem_type'] = np.where(((df.wp_pop_rank < df.wp_pop_rank.quantile(pop_q1)) & (
+    #             df.wp_pop_density_rank < df.wp_pop_density_rank.quantile(pop_den_q1)))
+    #                           , 'Urban'
+    #                           , np.where(((df.wp_pop_rank > df.wp_pop_rank.quantile(pop_q2)) | (
+    #                 df.wp_pop_density_rank > df.wp_pop_density_rank.quantile(pop_den_q2)))
+    #                                      , 'Rural'
+    #                                      , 'Sub-urban')
+    #                           )
+    print('df: ', df.dtypes)
+    print(df.head(n=100))
+    print(df.loc[df.GEMNAAM_SF=='De Fryske Marren',])
 
 
     host = 'prdcop1.ux.nl.tmo'
     username = 'ID022621'
-    password = 'Saqartvelo!!01'
+    password = 'Saqartvelo!!05'
 
     # #  Establish the connection to the Teradata database
     # database = "DL_NETWORK_GEN"
@@ -96,14 +131,21 @@ def main():
     # cursor.execute(query)
     # print(cursor.fetchall())
     # df_ar=pd.DataFrame(cursor.fetchall())
-    df_ar=df_ar.rename(columns={0: "lat", 1: "lon", 2: "gemnaam", 3: "woonplaatsnaam"})
+    # df_ar=(df_ar
+    #        .rename(columns={0: "lat", 1: "lon", 2: "gemnaam", 3: "woonplaatsnaam"})
+    #        .query("lat!=52.3640509710163 |  woonplaatsnaam != 'null' ")
+    #        )
+    # print(df_ar.shape)
+    # (24873, 4)
+
     # print('df_ar:',df_ar.dtypes)
     # print(df_ar.loc[df_ar.GEMNAAM_SF == 'De Fryske Marren',])
     # print(df_ar.head())
     # print(df_ar.loc[df_ar.lat == 52.9743069774552,])
     # print(df_ar.loc[df_ar.gemnaam == 'Gaasterlân-Sleat',])
 
-    df_ar = df_ar.loc[~((df_ar.lat == 52.3640509710163) & (df_ar.woonplaatsnaam == 'null')),]
+    # df_ar = df_ar.loc[~((df_ar.lat == 52.3640509710163) & (df_ar.woonplaatsnaam == 'null')),]
+    # print(df_ar.shape)
     df_ar_gpd = gpd.GeoDataFrame(
         df_ar
         , geometry=gpd.points_from_xy(df_ar.lon, df_ar.lat)
@@ -153,13 +195,29 @@ def main():
     )
     # print(df_temp.shape)
     # print(df_temp.head())
-    df_missing = df_temp.loc[df_temp.GEMNAAM_SF.isnull()].drop(['geometry'], axis=1)
-    df_missing['OPP'] = 0
-    df_missing['Population'] = 0
-    df_missing['wp_pop_rank'] = 0
-    df_missing['wp_pop_density'] = 0
-    df_missing['wp_pop_density_rank'] = 0
-    df_missing['gem_type'] = 'Unknown'
+
+    df_missing = (df_temp
+                  .query('GEMNAAM_SF.isnull()')
+                  .drop(['geometry'], axis=1)
+                  .assign(
+                        OPP = 0 ,
+                        Population = 0,
+                        wp_pop_rank = 0,
+                        wp_pop_density = 0,
+                        wp_pop_density_rank = 0,
+                        gem_type = 'Unknown'
+                    )
+                  )
+    print(df_missing.shape)
+
+    # df_missing = df_temp.loc[df_temp.GEMNAAM_SF.isnull()].drop(['geometry'], axis=1)
+    # df_missing['OPP'] = 0
+    # df_missing['Population'] = 0
+    # df_missing['wp_pop_rank'] = 0
+    # df_missing['wp_pop_density'] = 0
+    # df_missing['wp_pop_density_rank'] = 0
+    # df_missing['gem_type'] = 'Unknown'
+    # print(df_missing)
     # df_missing
     # df_missing.sort_values('gemnaam', ascending=False)
 
@@ -190,8 +248,14 @@ def main():
     # data = [tuple(x) for x in df_out.to_records(index=False)]
 
     # print(df_out.head())
-    df_out["OPP"]=df_out.OPP.round(3)
-    df_out["wp_pop_density"] = df_out.wp_pop_density.round(3)
+    df_out = (df_out
+              .assign(
+                OPP = df_out.OPP.round(3),
+                wp_pop_density = df_out.wp_pop_density.round(3)
+               )
+              )
+    # df_out["OPP"]=df_out.OPP.round(3)
+    # df_out["wp_pop_density"] = df_out.wp_pop_density.round(3)
     # print(df_out.head())
     # print(df_out.loc[df_out.GEMNAAM_SF == 'De Fryske Marren',])
 

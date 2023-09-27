@@ -125,9 +125,9 @@ def value_in_the_range(value: float, ls: list):
 #     else:
 #         return 'Unidentified'
 
-def operator(frequencyValue, frequencyListTMobile, frequencyListKPN, frequencyListVodafone):
-    if value_in_the_range(frequencyValue, frequencyListTMobile) == 1:
-        return 'T-Mobile'
+def operator(frequencyValue, frequencyListOdido, frequencyListKPN, frequencyListVodafone):
+    if value_in_the_range(frequencyValue, frequencyListOdido) == 1:
+        return 'Odido'
     elif value_in_the_range(frequencyValue, frequencyListKPN) == 1:
         return 'KPN'
     elif value_in_the_range(frequencyValue, frequencyListVodafone) == 1:
@@ -254,9 +254,9 @@ def GHz_to_MHz(row):
 #################################################################
 
 def main():
-    GHz_to_MHz('3.59-3.595 GHz')
-    GHz_to_MHz('3.595 GHz')
-    GHz_to_MHz('3598 MHz')
+    # GHz_to_MHz('3.59-3.595 GHz')
+    # GHz_to_MHz('3.595 GHz')
+    # GHz_to_MHz('3598 MHz')
     desired_width = 320
     pd.set_option('display.width', desired_width)
     pd.set_option('display.max_columns', 40)
@@ -267,7 +267,7 @@ def main():
     # print(pastDate)
 
     dt = datetime.today()
-    # dt = datetime.strptime('20221129', '%Y%m%d')
+    # dt = datetime.strptime('20230627', '%Y%m%d')
 
     fileDirectory = 'D:\\Giorgi\\Antenneregister'
     outputDirectory = 'D:\\Giorgi\\Antenneregister\\QV file'
@@ -366,7 +366,7 @@ def main():
     #                         [2500, 2530],
     #                         [2620, 2650]]
 
-    frequencyListTMobile = [
+    frequencyListOdido = [
         [723, 733],
         [778, 788],
         [791, 801],
@@ -448,7 +448,7 @@ def main():
     # df['Technology1'] = df['SAT_CODE'].apply(lambda x: technology1(x))
     # df['Operator'] = df['Frequentie1'].apply(lambda x: operator(x, frequencyListTMobile, frequencyListKPN, frequencyListVodafone, frequencyListTele2))
     # print(df.dtypes)
-    df['Operator'] = df['Frequentie1'].apply(lambda x: operator(x, frequencyListTMobile, frequencyListKPN, frequencyListVodafone))
+    df['Operator'] = df['Frequentie1'].apply(lambda x: operator(x, frequencyListOdido, frequencyListKPN, frequencyListVodafone))
     df['Band'] = df['Frequentie1'].apply(lambda x: frequency_band(x))
 
 
@@ -564,8 +564,9 @@ def main():
     # Establish the connection to the Teradata database
     host = 'prdcop1.ux.nl.tmo'
     user = 'ID022621'
-    pwd = 'Saqartvelo!!01'
+    pwd = 'Saqartvelo!!05'
 
+    print('uploading data to Teradata table')
     udaExec = teradata.UdaExec(appName="AR_deshboard", version="1.0", logConsole=False)
     with udaExec.connect(method="odbc", system=host, username=user, password=pwd, charset='UTF8') as connection:
         connection.execute(
@@ -618,33 +619,48 @@ def main():
     # # cursor.close()
     # # conn.close()
     # #
-    host = "prohadoope02.ux.nl.tmo"
-    username = "antenna_registry"
-    password = "Karidia123!"
-
-    local_path = os.path.join(outputDirectory, outputFileNameMain)
-    remote_in_progress_path = "/IN_PROGRESS/{}".format(outputFileNameMain)
-    remote_final_path = "/FINAL/{}".format(outputFileNameMain)
+    # host = "prohadoope02.ux.nl.tmo"
+    # username = "antenna_registry"
+    # password = "Karidia123!"
+    #
+    # local_path = os.path.join(outputDirectory, outputFileNameMain)
+    # remote_in_progress_path = "/IN_PROGRESS/{}".format(outputFileNameMain)
+    # remote_final_path = "/FINAL/{}".format(outputFileNameMain)
+    #
+    # print('Trying to store cleaned data on sftp location')
+    # cnopts = pysftp.CnOpts()
+    # cnopts.hostkeys = None
+    # with pysftp.Connection(host=host, username=username, password=password, cnopts=cnopts) as sftp:
+    #     sftp.put(local_path, remote_in_progress_path)
+    #     sftp.rename(remote_in_progress_path, remote_final_path)
+    # print('Data stored on sftp location')
 
     print('Trying to store cleaned data on sftp location')
+    hostname = "172.27.0.69"
+    username = "ardashboard"
+    keyFile = "D:\\Giorgi\\Antenneregister\\Useful files\\ardashboard_key"
     cnopts = pysftp.CnOpts()
     cnopts.hostkeys = None
-    with pysftp.Connection(host=host, username=username, password=password, cnopts=cnopts) as sftp:
-        sftp.put(local_path, remote_in_progress_path)
-        sftp.rename(remote_in_progress_path, remote_final_path)
+
+    local_path = os.path.join(outputDirectory, outputFileNameMain)
+    remote_path = "/{}".format(outputFileNameMain)
+
+    with pysftp.Connection(hostname, username=username, private_key=keyFile, cnopts=cnopts) as sftp:
+        print("Connection succesfully stablished ... ")
+        sftp.put(local_path, remote_path)
+
     print('Data stored on sftp location')
 
 
-
-    # Example usage
-    send_email_with_attachment(sender='gio.labadze+antenneregister@gmail.com',
-                               password='ghitfworqormtqxl',
-                               recipients=['rob.hormes@t-mobile.nl'],
-                               subject='Antenneregister data',
-                               body='Hi Rob,\nPlease find the attached with the latest Anntenaregister data.\nCheers,\nGiorgi',
-                               file_path=os.path.join(outputDirectory, outputFileNameMain),
-                               bcc=['giorgi.labadze@t-mobile.nl']
-                               )
+    # # Example usage
+    # send_email_with_attachment(sender='gio.labadze+antenneregister@gmail.com',
+    #                            password='ghitfworqormtqxl',
+    #                            recipients=['rob.hormes@t-mobile.nl'],
+    #                            subject='Antenneregister data',
+    #                            body='Hi Rob,\nPlease find the attached with the latest Anntenaregister data.\nCheers,\nGiorgi',
+    #                            file_path=os.path.join(outputDirectory, outputFileNameMain),
+    #                            bcc=['giorgi.labadze@t-mobile.nl']
+    #                            )
 
 if __name__ == '__main__':
     main()

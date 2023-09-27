@@ -421,3 +421,102 @@
 # # Press the green button in the gutter to run the script.
 # if __name__ == '__main__':
 #     main()
+#
+#
+# import csv
+# import re
+# import teradata
+# import pysftp
+#
+# from datetime import datetime
+# import smtplib
+# import zipfile
+# import os
+#
+# from email.mime.text import MIMEText
+# from email.mime.multipart import MIMEMultipart
+# from email.mime.application import MIMEApplication
+#
+# def send_email_with_attachment(sender, password, recipients, subject, body, file_path=None, cc=None, bcc=None):
+#     print("num 1")
+#     msg = MIMEMultipart()
+#     msg['From'] = sender
+#     msg['To'] = ", ".join(recipients)
+#     msg['Cc'] = cc
+#     msg['Subject'] = subject
+#
+#     msg.attach(MIMEText(body))
+#
+#     print("num 2")
+#
+#     if file_path:
+#         with zipfile.ZipFile(file_path + '.zip', 'w') as myzip:
+#             myzip.write(file_path)
+#
+#         print("num 3")
+#         with open(file_path + '.zip', "rb") as f:
+#             part = MIMEApplication(f.read(), Name=os.path.basename(file_path + '.zip'))
+#             part['Content-Disposition'] = 'attachment; filename="{}"'.format(os.path.basename(file_path + '.zip'))
+#             msg.attach(part)
+#             print("num 4")
+#
+#     print("num 5")
+#     if cc and bcc:
+#         rcpt = cc + bcc + recipients
+#     elif cc:
+#         rcpt = cc + recipients
+#     elif bcc:
+#         rcpt = bcc + recipients
+#     else:
+#         rcpt = recipients
+#
+#     print(rcpt)
+#
+#     print("num 6")
+#     # smtp = smtplib.SMTP('smtp.gmail.com', 587)
+#     smtp = smtplib.SMTP("smtp.gmail.com", 587, timeout=120)
+#     # smtp = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+#     print("num 7")
+#     smtp.ehlo()
+#     print("num 8")
+#     smtp.starttls()
+#     print("num 9")
+#     smtp.login(sender, password)
+#     print("num 10")
+#     smtp.sendmail(sender, rcpt, msg.as_string())
+#     print("num 11")
+#     smtp.quit()
+#
+# dt = datetime.strptime('20230127', '%Y%m%d')
+# # fileDirectory = 'D:\\Giorgi\\Antenneregister'
+# outputDirectory = 'D:\\Giorgi\\Antenneregister\\QV file'
+# # outputfileName = 'final_all_opt_{0}.csv'.format(today.strftime('%Y%m%d'))
+# outputFileNameMain = 'final_all_opt_{0}.csv'.format(dt.strftime('%Y%m%d'))
+# # outputFileNameOM = 'OVERIGMOBIEL_{0}.csv'.format(dt.strftime('%Y%m%d'))
+# # outputFileNameVV = 'VASTEVERB_{0}.csv'.format(dt.strftime('%Y%m%d'))
+# # outputFileNameO = 'OMROEP_{0}.csv'.format(dt.strftime('%Y%m%d'))
+#
+# print(os.path.join(outputDirectory, outputFileNameMain))
+#
+# send_email_with_attachment(sender='gio.labadze+antenneregister@gmail.com',
+#                            password='iqimjptucwkermtp',
+#                            recipients=['giorgi.labadze@t-mobile.nl'],
+#                            subject='Antenneregister data',
+#                            body='Hi Rob,\nPlease find the attached with the latest Anntenaregister data.\nCheers,\nGiorgi',
+#                            file_path=os.path.join(outputDirectory, outputFileNameMain),
+#                            # bcc=['giorgi.labadze@t-mobile.nl']
+#                            )
+
+import pysftp
+
+local_path = os.path.join(outputDirectory, outputFileNameMain)
+remote_final_path = "/{}".format(outputFileNameMain)
+
+hostname = "172.27.0.69"
+username = "ardashboard"
+keyFile = "D:\\Giorgi\\Antenneregister\\Useful files\\ardashboard_key"
+cnopts = pysftp.CnOpts()
+cnopts.hostkeys = None
+
+with pysftp.Connection(hostname, username=username, private_key=keyFile, cnopts=cnopts) as sftp:
+    print("Connection succesfully stablished ... ")
