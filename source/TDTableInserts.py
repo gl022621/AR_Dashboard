@@ -79,7 +79,7 @@ def main():
 
     host = 'prdcop1.ux.nl.tmo'
     username = 'ID022621'
-    password = 'Saqartvelo!!05'
+    password = 'Saqartvelo!!08'
 
     # #  Establish the connection to the Teradata database
     # database = "DL_NETWORK_GEN"
@@ -579,7 +579,7 @@ def main():
                                     CASE WHEN mn.Band = '2100' THEN 1 ELSE 0 END as tag_2100MHz,
                                     CASE WHEN mn.Band = '2600FDD' THEN 1 ELSE 0 END as tag_2600MHz_FDD,
                                     CASE WHEN mn.Band = '2600TDD' THEN 1 ELSE 0 END as tag_2600MHz_TDD,
-                                    CASE WHEN mn.Band = '3500TDD' THEN 1 ELSE 0 END as tag_3500MHz_TDD,
+                                    CASE WHEN mn.Band = '3500' THEN 1 ELSE 0 END as tag_3500MHz_TDD,
                                     CASE WHEN (mn.Technology = '2G' and mn.Band = '900') THEN 1 ELSE 0 END as tag_GSM900,
                                     CASE WHEN (mn.Technology = '2G' and mn.Band = '1800') THEN 1 ELSE 0 END as tag_GSM1800,
                                     CASE WHEN (mn.Technology = '3G' and mn.Band = '900') THEN 1 ELSE 0 END as tag_UMTS900,
@@ -601,10 +601,22 @@ def main():
                                     CASE WHEN (mn.Technology = '5G' and mn.Band = '2100') THEN 1 ELSE 0 END as tag_NR2100,
                                     CASE WHEN (mn.Technology = '5G' and mn.Band = '2600FDD') THEN 1 ELSE 0 END as tag_NR2600FDD,
                                     CASE WHEN (mn.Technology = '5G' and mn.Band = '2600TDD') THEN 1 ELSE 0 END as tag_NR2600TDD,
-                                    CASE WHEN (mn.Technology = '5G' and mn.Band = '3500TDD') THEN 1 ELSE 0 END as tag_NR3500TDD,
+                                    CASE WHEN (mn.Technology = '5G' and mn.Band = '3500') THEN 1 ELSE 0 END as tag_NR3500TDD,
                                     mn.SMALL_CELL_INDICATOR
                                 FROM DL_NETWORK_GEN.ARdashboard mn
                                 LEFT JOIN DL_NETWORK_GEN.woonplaats_info wp ON (round(mn.lat, 13)=wp.lat AND round(mn.lon, 13)=wp.lon)
+                                ;'''
+                           )
+
+        connection.execute('''
+                                update DL_NETWORK_GEN.ARdashboard_joined
+                                set Operator = 'Tampnet'
+                                where 1=1
+                                and gem_type = 'Unknown'
+                                and Operator not in  ('Odido', 'T-Mobile')
+                                and tag_1400MHz=0
+                                and tag_2100MHz=0
+                                and tag_NR = 0
                                 ;'''
                            )
 
@@ -614,7 +626,7 @@ def main():
                             SELECT
                                 *
                             FROM DL_NETWORK_GEN.ARdashboard_joined
-                            WHERE Load_Date>'{0}'
+                            WHERE Load_Date>='{0}'
                             ;
                             '''.format(month_start)
                            )

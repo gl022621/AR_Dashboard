@@ -54,7 +54,7 @@ def send_email_with_attachment(sender, password, recipients, subject, body, file
     else:
         rcpt = recipients
 
-    print(rcpt)
+    # print(rcpt)
 
     smtp = smtplib.SMTP('smtp.gmail.com', 587)
     smtp.ehlo()
@@ -267,7 +267,7 @@ def main():
     # print(pastDate)
 
     dt = datetime.today()
-    # dt = datetime.strptime('20230627', '%Y%m%d')
+    # dt = datetime.strptime('20241027', '%Y%m%d')
 
     fileDirectory = 'D:\\Giorgi\\Antenneregister'
     outputDirectory = 'D:\\Giorgi\\Antenneregister\\QV file'
@@ -381,7 +381,9 @@ def main():
         [2530, 2535],
         [2545, 2590],
         [2650, 2655],
-        [2665, 2690]]
+        [2665, 2690],
+        [3550, 3650]
+    ]
 
     frequencyListKPN = [
         [713, 723],
@@ -397,7 +399,9 @@ def main():
         [2150, 2170],
         [2535, 2545],
         [2590, 2620],
-        [2655, 2665]]
+        [2655, 2665],
+        [3650, 3750]
+    ]
 
     frequencyListVodafone = [
         [703, 713],
@@ -412,7 +416,9 @@ def main():
         [1920, 1940],
         [2110, 2130],
         [2500, 2530],
-        [2620, 2650]]
+        [2620, 2650],
+        [3450, 3551] #vodafone lables 3.5GHz cells with 3550MHz, so to assign operators correctly to the cells I changed end frequency here from 3550 to 3551
+    ]
 
     # frequencyListTele2 = [[791, 801],
     #                       [832, 842],
@@ -423,6 +429,8 @@ def main():
     ##df = pd.read_csv(os.path.join(fileDirectory, fileNameAll), encoding='latin1')
     ##print(df)
     # df=df.head(n=100)
+
+    df = df.dropna(subset=['Frequentie'])
 
     df['Hoogte'] = df['Hoogte'].str.replace(' m', '').astype(float) if 'Hoogte' in df.columns else None
     df['Hoofdstraalrichting'] = df['Hoofdstraalrichting'].str.replace(' gr', '') if 'Hoofdstraalrichting' in df.columns else None
@@ -506,6 +514,10 @@ def main():
     df["SMALL_CELL_INDICATOR"] = df["SMALL_CELL_INDICATOR"].replace({'Null': None})
     df["DATUM_LAATSTE_AANPASSING"] = df["DATUM_LAATSTE_AANPASSING"].replace({'Null': None})
 
+    df.loc[(df['Band'] == '3500') & (df['Operator'] == 'Unidentified'), 'Operator'] = 'Odido'
+
+
+
     # print(df.head())
     # print(os.path.join(outputDirectory, outputfileName))
     df.loc[~df.HOOFDSOORT.str.contains('|'.join(['OVERIGMOBIEL', 'VASTE VERB', 'OMROEP'])),].to_csv(os.path.join(outputDirectory, outputFileNameMain), index=False, quoting=csv.QUOTE_ALL)
@@ -514,86 +526,90 @@ def main():
     df.loc[df.HOOFDSOORT == 'OVERIGMOBIEL',].to_csv(os.path.join(outputDirectory,outputFileNameOM), index=False, quoting=csv.QUOTE_ALL)
     print('Data cleaned and stored localy in csv file')
 
-    df = df.replace({np.nan: None})
+    # df = df.replace({np.nan: None})
+    #
+    # df_to_load =  df.loc[~df.HOOFDSOORT.str.contains('|'.join(['OVERIGMOBIEL', 'VASTE VERB', 'OMROEP'])),]
+    # # df_to_load = df[df.HOOFDSOORT != 'OVERIGMOBIEL']
+    #
+    #
+    #
+    # # print(os.path.join(outputDirectory, outputfileName))
+    # # df_to_load = pd.read_csv(os.path.join(outputDirectory, outputfileName))
+    # # print(df_to_load.dtypes)
+    # df_to_load = df_to_load.replace({np.nan: None})
+    # # host, user, pwd, db = 'prdcop1.ux.nl.tmo', 'ID022621', 'Saqartvelo!!19', 'DL_NETWORK_GEN'
+    # # print(pwd)
+    # df_to_load = df_to_load[[
+    #     "DATUM_INGEBRUIKNAME",
+    #     "GEMNAAM",
+    #     "HOOFDSOORT",
+    #     "SAT_CODE",
+    #     "WOONPLAATSNAAM",
+    #     "postcode",
+    #     "x",
+    #     "y",
+    #     "Hoogte",
+    #     "Hoofdstraalrichting",
+    #     "Frequentie",
+    #     "Vermogen",
+    #     "Veilige afstand",
+    #     "Frequentie1",
+    #     "Frequentie2",
+    #     "Technology",
+    #     "Operator",
+    #     "Band",
+    #     "Outdoor_Macro",
+    #     "Load_Date",
+    #     "lat",
+    #     "lon",
+    #     "OBJECTID",
+    #     "DATUM_PLAATSING",
+    #     "DATUM_LAATSTE_AANPASSING",
+    #     "SMALL_CELL_INDICATOR"
+    # ]]
 
-    df_to_load =  df.loc[~df.HOOFDSOORT.str.contains('|'.join(['OVERIGMOBIEL', 'VASTE VERB', 'OMROEP'])),]
-    # df_to_load = df[df.HOOFDSOORT != 'OVERIGMOBIEL']
-
-
-
-    # print(os.path.join(outputDirectory, outputfileName))
-    # df_to_load = pd.read_csv(os.path.join(outputDirectory, outputfileName))
-    # print(df_to_load.dtypes)
-    df_to_load = df_to_load.replace({np.nan: None})
-    # host, user, pwd, db = 'prdcop1.ux.nl.tmo', 'ID022621', 'Saqartvelo!!19', 'DL_NETWORK_GEN'
-    # print(pwd)
-    df_to_load = df_to_load[[
-        "DATUM_INGEBRUIKNAME",
-        "GEMNAAM",
-        "HOOFDSOORT",
-        "SAT_CODE",
-        "WOONPLAATSNAAM",
-        "postcode",
-        "x",
-        "y",
-        "Hoogte",
-        "Hoofdstraalrichting",
-        "Frequentie",
-        "Vermogen",
-        "Veilige afstand",
-        "Frequentie1",
-        "Frequentie2",
-        "Technology",
-        "Operator",
-        "Band",
-        "Outdoor_Macro",
-        "Load_Date",
-        "lat",
-        "lon",
-        "OBJECTID",
-        "DATUM_PLAATSING",
-        "DATUM_LAATSTE_AANPASSING",
-        "SMALL_CELL_INDICATOR"
-    ]]
+    # print(df_to_load)
 
     # print(df_to_load.loc[df_to_load.postcode=='8501BA', ])
     # print(df_to_load.values.tolist())
-    # df_to_load.to_csv(os.path.join(outputDirectory, "file_to_load.csv"), index=False, quoting=csv.QUOTE_ALL)
+    # df_to_load.to_csv(os.path.join(outputDirectory, "file_to_load_202409.csv"), index=False, quoting=csv.QUOTE_ALL)
 
     # print('Trying to store cleaned data into teradata table')
-    # Establish the connection to the Teradata database
-    host = 'prdcop1.ux.nl.tmo'
-    user = 'ID022621'
-    pwd = 'Saqartvelo!!05'
 
-    print('uploading data to Teradata table')
-    udaExec = teradata.UdaExec(appName="AR_deshboard", version="1.0", logConsole=False)
-    with udaExec.connect(method="odbc", system=host, username=user, password=pwd, charset='UTF8') as connection:
-        connection.execute(
-            "DELETE FROM DL_NETWORK_GEN.ARDashboard WHERE Load_date = '{0}';".format(dt.strftime('%Y-%m')))
-        # connection.execute(
-        #     """select
-        #             Load_date
-        #                 ,count(*)
-        #             from DL_NETWORK_GEN.ARdashboard
-        #             group by
-        #             Load_date
-        #             order by
-        #                 Load_date desc;"""
-        # )
-        # print(df_to_load.shape)
-        chunk_size = 1000
-        chunks = [df_to_load[i:i + chunk_size][:] for i in range(0, df_to_load.shape[0], chunk_size)]
 
-        for df_n in chunks:
-            # print(df_n)
-            data = [tuple(x) for x in df_n.to_records(index=False)]
-            # print(data)
-        # connection.execute("DELETE FROM DL_NETWORK_GEN.ARDashboard WHERE Load_date = '{0}';".format(dt.strftime('%Y-%m')))
-            connection.executemany('INSERT INTO DL_NETWORK_GEN.ARDashboard values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);'
-                                   , data
-                                   , batch=True
-                                   )
+    # # Establish the connection to the Teradata database
+    # host = 'prdcop1.ux.nl.tmo'
+    # user = 'ID022621'
+    # pwd = 'Saqartvelo!!08'
+    #
+    # print('uploading data to Teradata table')
+    # udaExec = teradata.UdaExec(appName="AR_deshboard", version="1.0", logConsole=False)
+    # with udaExec.connect(method="odbc", system=host, username=user, password=pwd, charset='UTF8') as connection:
+    #     connection.execute(
+    #         "DELETE FROM DL_NETWORK_GEN.ARDashboard WHERE Load_date = '{0}';".format(dt.strftime('%Y-%m')))
+    #     # connection.execute(
+    #     #     """select
+    #     #             Load_date
+    #     #                 ,count(*)
+    #     #             from DL_NETWORK_GEN.ARdashboard
+    #     #             group by
+    #     #             Load_date
+    #     #             order by
+    #     #                 Load_date desc;"""
+    #     # )
+    #     # print(df_to_load.shape)
+    #     chunk_size = 1000
+    #     chunks = [df_to_load[i:i + chunk_size][:] for i in range(0, df_to_load.shape[0], chunk_size)]
+    #
+    #     for df_n in chunks:
+    #         # print(df_n)
+    #         data = [tuple(x) for x in df_n.to_records(index=False)]
+    #         # print(data)
+    #     # connection.execute("DELETE FROM DL_NETWORK_GEN.ARDashboard WHERE Load_date = '{0}';".format(dt.strftime('%Y-%m')))
+    #         connection.executemany('INSERT INTO DL_NETWORK_GEN.ARDashboard values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);'
+    #                                , data
+    #                                , batch=True
+    #                                )
     # #
     # # database = "DL_NETWORK_GEN"
     # # table = "ARdashboard"
@@ -635,6 +651,8 @@ def main():
     #     sftp.rename(remote_in_progress_path, remote_final_path)
     # print('Data stored on sftp location')
 
+
+
     print('Trying to store cleaned data on sftp location')
     hostname = "172.27.0.69"
     username = "ardashboard"
@@ -650,6 +668,12 @@ def main():
         sftp.put(local_path, remote_path)
 
     print('Data stored on sftp location')
+
+
+
+
+
+
 
 
     # # Example usage
