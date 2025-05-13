@@ -121,6 +121,7 @@ def url_response(session, url):
         A json formatted response of url.
     """
     headers = {'User-Agent': user_agent_string('')}
+    response = None
     # request the URL and parse the JSON
     try:
         response = session.get(url, headers=headers)
@@ -131,8 +132,13 @@ def url_response(session, url):
     except requests.exceptions.ConnectionError:
         print('Connection Error for url={0}'.format(url))
         out = {'results': []}
+    except Exception as e:
+        print(f"Unexpected error for url={url}: {e}")
+        out = {'results': []}
 
-    print(response.json())
+    if response:
+        print(response.json())
+
     return out
 
 
