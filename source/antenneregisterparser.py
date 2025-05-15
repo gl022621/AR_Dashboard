@@ -14,7 +14,7 @@ import random
 import ast
 
 desired_display_width=320
-desired_columns = 30
+desired_columns = 40
 desired_column_width=200
 
 pd.set_option('display.width', desired_display_width)
@@ -103,10 +103,6 @@ def equally_split_list(zmin, zmax, zdelta):
 
 def user_agent_string():
     """Creates user agent to be included into request.
-
-    Args:
-        tech: Technology indicator that is being parsed. format of argument is: 'LTE', 'UMTS', 'GSM', 'IoT'. Any other string will result in default value.
-
     Returns:
         A string of user agent.
     """
@@ -126,6 +122,7 @@ def make_request(session, method, base_url, params=None, data=None, headers=None
     Makes an HTTP request using the specified method.
 
     Args:
+        session (requests.Session): The requests session to use
         method (str): 'GET' or 'POST'
         base_url (str): The endpoint URL
         params (dict): Query string parameters (appended to the URL)
@@ -139,7 +136,7 @@ def make_request(session, method, base_url, params=None, data=None, headers=None
 
     if method == "GET":
         try:
-            print('I am in GET')
+            # print('I am in GET')
             response = session.get(url=base_url, params=params, headers=headers)
             out = response.json()
             print('url: ',response.request.url)
@@ -174,7 +171,7 @@ def make_request(session, method, base_url, params=None, data=None, headers=None
     else:
         raise ValueError(f"Unsupported method: {method}")
 
-    print('out: ', out)
+    # print('out: ', out)
     return out
 
 
@@ -236,7 +233,6 @@ def make_request_headers(type):
             'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive',
-            # 'Cookie': 'f5_cspm=1234; atrv-sessie=e5324b62-1131-487f-974e-97b599061356; TS01517c46=015d4243a64aeaeea03fd49bf0f7a6850daeeea1f2f8addc69576d9e7754864c420b0049e61c53b841827d989f474a84e731f9599c5c8fb9c77883c3e65a67ac9ac929ac442fc8a4351f5ececad451a5e77a6cbbaa',
             'Host': 'antenneregister.nl',
             'Referer': 'https://antenneregister.nl/viewer/',
             'Sec-Fetch-Dest': 'empty',
@@ -255,7 +251,6 @@ def make_request_headers(type):
             'Connection': 'keep-alive',
             # 'Content-Length': '178',
             # 'Content-type': 'application/x-www-form-urlencoded',
-            # 'Cookie': 'f5_cspm=1234; atrv-sessie=e5324b62-1131-487f-974e-97b599061356; TS01517c46=015d4243a64aeaeea03fd49bf0f7a6850daeeea1f2f8addc69576d9e7754864c420b0049e61c53b841827d989f474a84e731f9599c5c8fb9c77883c3e65a67ac9ac929ac442fc8a4351f5ececad451a5e77a6cbbaa',
             'Host': 'antenneregister.nl',
             # 'Origin': 'https://antenneregister.nl',
             'Referer': 'https://antenneregister.nl/viewer/',
@@ -308,8 +303,10 @@ def list_of_locations(xmin, xmax, ylist, eps):
     """Fetches partial information from antenna locations.
 
     Args:
-        session: Requests session.
-        url: URL string.
+        xmin: The smallest x coordinate.
+        xmax: The largest x coordinate.
+        ylist: List of y coordinates.
+        eps: Extra space to assure overlap between neighboring rectangles.
 
     Returns:
         A List of antenna locations and partial information from this locations.
@@ -343,7 +340,7 @@ def list_of_locations(xmin, xmax, ylist, eps):
             response = make_request(session=s, method='get', base_url=base_url, params=params, headers=headers)
 
         if i%1000==0:
-            n_random = random.randint(50, 60)
+            n_random = random.randint(5, 15)
             print('sleeping for {}sec'.format(n_random))
             time.sleep(n_random)
         elif i%100==0:
@@ -380,14 +377,14 @@ def extract_antennas_grouped(geojson_list):
     for geojson in geojson_list:
         for feature in geojson.get("features", []):
             props = feature.get("properties", {}).copy()
-            coords = feature.get("geometry", {}).get("coordinates", [None, None])
+            # coords = feature.get("geometry", {}).get("coordinates", [None, None])
 
             # Convert comma-separated strings to lists
             # props["ANT_IDS"] = [s.strip() for s in props.get("ANT_IDS", "").split(",") if s.strip()]
             # props["HOOFDSOORT"] = [s.strip() for s in props.get("HOOFDSOORT", "").split(",") if s.strip()]
 
-            props["geometry_x"] = coords[0]
-            props["geometry_y"] = coords[1]
+            # props["geometry_x"] = coords[0]
+            # props["geometry_y"] = coords[1]
 
             records.append(props)
 
@@ -455,7 +452,7 @@ def formating_date_column(df, column):
         df: Dataframe.
         column: String column which needs to be converted to date type.
     """
-    return df[column].apply(lambda x: formating_date(x))
+    return df[column].apply(lambda x: formating_date(x) if pd.notnull(x) and str(x).strip() != '' else None)
 
 
 def save_df_in_csv(df, dir, file):
@@ -509,17 +506,17 @@ def url_response_id(session, id_list):
     # headers = {'User-Agent': user_agent_string(technology)}
     # # request the URL and parse the JSON
 
-    print(id_list)
+    # print(id_list)
 
     base_url = 'https://antenneregister.nl/mapserver/wfs/'
 
     params = make_request_params_antennas(id_list)
-    print('params: ', params)
+    # print('params: ', params)
     headers = make_request_headers('antennas')
-    print('headers: ', headers)
+    # print('headers: ', headers)
 
     response = make_request(session=session, method='get', base_url=base_url, params=params, headers=headers)
-    print('response: ', response)
+    # print('response: ', response)
 
     return response
 
@@ -540,45 +537,39 @@ def main():
     # definition of vertices of rectangle that fully covers the Netherlands on the Antennaregister map
     xMin = 10400
     xMax = 278000
-    yMin = 306000
-    yMax = 640000
+    # yMin = 306000
+    # yMax = 640000
+    yMin = 490000
+    yMax = 500000
 
     # number of small rectangles that we split above big rectangle
-    # yDelta = 3950
-    # yDelta = 6320
-    # yDelta = 7900
-    yDelta = 12000
-    epsilon = 1
+    yDelta = 2
+    # yDelta = 6000
+    epsilon = 10
 
     yList = equally_split_list(yMin, yMax+1, yDelta)
+    print(yList)
 
     # creates dataframe with anntena details including ids
     dfIDsDubs = extract_antennas_grouped(list_of_locations(xmin=xMin, xmax=xMax, ylist=yList, eps=epsilon))
 
-    # removing duplicates from above dataframe
-    dfIDsDubs['ANT_IDS'] = dfIDsDubs['ANT_IDS'].apply(lambda x: ','.join(x) if isinstance(x, list) else x)
-    dfIDsDubs['HOOFDSOORT'] = dfIDsDubs['HOOFDSOORT'].apply(lambda x: ','.join(x) if isinstance(x, list) else x)
-    dfIDs = dfIDsDubs.drop_duplicates()
-    dfIDs["ANT_IDS"] = dfIDs["ANT_IDS"].apply(lambda x: [s.strip() for s in x.split(",")] if isinstance(x, str) else x)
-    dfIDs["HOOFDSOORT"] = dfIDs["HOOFDSOORT"].apply(lambda x: [s.strip() for s in x.split(",")] if isinstance(x, str) else x)
-
-    # dfIDs['DATUM_INGEBRUIKNAME'] = formating_date_column(dfIDs, 'DATUM_INGEBRUIKNAME') #dfIDsDubs['DATUM_INGEBRUIKNAME'].apply(lambda x: formating_date(x))
-    # dfIDs['DATUM_PLAATSING'] = formating_date_column(dfIDs, 'DATUM_PLAATSING') #dfIDsDubs['DATUM_PLAATSING'].apply(lambda x: formating_date(x))
+    dfIDs = dfIDsDubs.drop_duplicates().copy()
+    dfIDs.rename(columns={
+        'ID': 'ID_LOCATIE',
+        'ANT_IDS': 'IDS_ANTENNE'
+    }, inplace=True)
 
     # writing above dataframe into a file
     save_df_in_csv(dfIDs,fileDirectory, fileNameIDs)
 
-    dfIDs = pd.read_csv('D:\\Giorgi\\Antenneregister\\ids_all_20250514.csv')
+    # dfIDs = pd.read_csv('D:\\Giorgi\\Antenneregister\\ids_all_20250514.csv')
     # dfIDs = pd.read_csv('D:\\Giorgi\\Antenneregister\\ids_overig_opt_20210618.csv')
 
-    # print(dfIDs.head())
-    # print(dfIDs.HOOFDSOORT.unique())
+    # dfIDs['IDS_ANTENNE'] = dfIDs['IDS_ANTENNE'].apply(ast.literal_eval)
+    # dfIDs['HOOFDSOORT'] = dfIDs['HOOFDSOORT'].apply(ast.literal_eval)
 
-    dfIDs['ANT_IDS'] = dfIDs['ANT_IDS'].apply(ast.literal_eval)
-    dfIDs['HOOFDSOORT'] = dfIDs['HOOFDSOORT'].apply(ast.literal_eval)
-
-    # dfIDs["ANT_IDS"] = dfIDs["ANT_IDS"].apply(lambda x: [s.strip() for s in x.split(",")] if isinstance(x, str) else x)
-    # dfIDs["HOOFDSOORT"] = dfIDs["HOOFDSOORT"].apply(lambda x: [s.strip() for s in x.split(",")] if isinstance(x, str) else x)
+    dfIDs["IDS_ANTENNE"] = dfIDs["IDS_ANTENNE"].apply(lambda x: [s.strip() for s in x.split(",")] if isinstance(x, str) else x)
+    dfIDs["HOOFDSOORT"] = dfIDs["HOOFDSOORT"].apply(lambda x: [s.strip() for s in x.split(",")] if isinstance(x, str) else x)
 
     df_MOBIELE = dfIDs[dfIDs.MOBIELE_COMMUNICATIE == 1]
     df_OM = dfIDs[dfIDs.OVERIGMOBIEL == 1]
@@ -589,32 +580,87 @@ def main():
 
     # save_df_in_csv(df_ZM, fileDirectory, '{0}_opt_{1}.csv'.format('ZendaMateurs', today.strftime('%Y%m%d')))
 
-    dfList = {
-        'MOBIELE': df_MOBIELE.head()
-        # , 'OverigMobile': df_OM
-        # , 'Omroep': df_TDAB
-        # , 'ZendaMateurs': df_ZM
-        # , 'VasteVerb': df_VV
+    dict_df = {
+        'MOBIELE': df_MOBIELE
+        , 'OverigMobile': df_OM
+        , 'Omroep': df_TDAB
+        # , 'ZendaMateurs': df_ZM.head()
+        , 'VasteVerb': df_VV
     }
 
     # print(dfList)
-    #
 
 
-    for technology, df in dfList.items():
-        print(f'{technology}\n',df.info())
+    for technology, df in dict_df.items():
+        # print(f'{technology}\n',df.info())
 
         s = requests.Session()
         list_antennas = []
         # iterate over the rows of the dataframe
         for index, row in df.iterrows():
-            print(type(row['ANT_IDS']))
-            response = url_response_id(session=s, id_list=row['ANT_IDS'])
+            # print(type(row['IDS_ANTENNE']))
+            response = url_response_id(session=s, id_list=row['IDS_ANTENNE'])
 
             list_antennas.append(response)
 
-        df_test = extract_antennas_grouped(list_antennas)
+        df_antennas = extract_antennas_grouped(list_antennas)
+        df_antennas= (df_antennas
+         .assign(
+            DATUM_INGEBRUIKNAME= formating_date_column(df_antennas, 'DATUM_INGEBRUIKNAME')  # dfIDsDubs['DATUM_INGEBRUIKNAME'].apply(lambda x: formating_date(x))
+            ,DATUM_PLAATSING = formating_date_column(df_antennas, 'DATUM_PLAATSING')  # dfIDsDubs['DATUM_PLAATSING'].apply(lambda x: formating_date(x))
+            ,DATUM_WIJZIGING = formating_date_column(df_antennas, 'DATUM_WIJZIGING')  # dfIDsDubs['DATUM_WIJZIGING'].apply(lambda x: formating_date(x))
+        )
+         .rename(
+            columns={
+                'ID': 'ID_CELL',
+                'AI_ID': 'ID_ANTENNE'
+            }
+        ))
 
+
+        df = df.copy()
+        df['pairs'] = df.apply(lambda row: list(zip(row['IDS_ANTENNE'], row['HOOFDSOORT'])), axis=1)
+        df = df.explode('pairs')
+        df['ID_ANTENNE'] = df['pairs'].apply(lambda x: int(x[0]))
+        df['HOOFDSOORT'] = df['pairs'].apply(lambda x: x[1])
+        df = df.drop(columns=['pairs', 'IDS_ANTENNE'])
+
+        df_all = pd.merge(
+            df
+            , df_antennas
+            , how='right'
+            , left_on=['ID_ANTENNE']
+            , right_on=['ID_ANTENNE']
+        )
+
+
+
+        df_out = (df_all.filter([
+             'ID_LOCATIE'
+            , 'ID_ANTENNE'
+            , 'ID_CELL'
+            , 'DATUM_PLAATSING'
+            , 'DATUM_INGEBRUIKNAME'
+            , 'DATUM_WIJZIGING'
+            , 'GEMEENTE'
+            , 'WOONPLAATSNAAM'
+            , 'POSTCODE'
+            , 'X'
+            , 'Y'
+            , 'SAT_CODE'
+            , 'HOOFDSOORT'
+            , 'SMALL_CELL_INDICATOR'
+            , 'HOOGTE'
+            , 'HOOFDSTRAALRICHTING'
+            , 'FREQUENTIE'
+            , 'ZENDVERMOGEN'
+            , 'VEILIGE_AFSTAND'
+        ])
+         )
+
+        # writing final dataframe to local file
+        outFileName = '{0}_opt_{1}.csv'.format(technology, today.strftime('%Y%m%d'))
+        save_df_in_csv(df_out,fileDirectory, outFileName)
 
         # idList = df['id'].tolist()
         # rows = []

@@ -196,8 +196,8 @@ def outdoor_macro(row):
     # '-' in row['Hoofdstraalrichting'] or row['Vermogen'] < 15:
     # print(row['Hoofdstraalrichting'])
     # print(('0' if row['Hoofdstraalrichting'] is None else row['Hoofdstraalrichting']))
-    if '-' in row['Hoofdstraalrichting'] or float(row['Vermogen']) < 15:
-        if (row['Technology'] == 'NB-IoT') or (row['Band'] == '2600TDD' and row['Operator'] == 'KPN' and row['Vermogen']==12.3):
+    if '-' in str(row['HOOFDSTRAALRICHTING']) or row['ZENDVERMOGEN'] < 15:
+        if (row['Technology'] == 'NB-IoT') or (row['Band'] == '2600TDD' and row['Operator'] == 'KPN' and row['ZENDVERMOGEN']==12.3):
             return 'Yes'
         else:
             return 'No'
@@ -209,11 +209,11 @@ def outdoor_macro(row):
 
 
 def lat(row):
-    return round(xy_to_latitude(row['x'], row['y']), 15)
+    return round(xy_to_latitude(row['X'], row['Y']), 15)
 
 
 def lon(row):
-    return round(xy_to_longitude(row['x'], row['y']), 15)
+    return round(xy_to_longitude(row['X'], row['Y']), 15)
 
 
 def recent_file_list_in_directory(directory, datetime):
@@ -277,6 +277,7 @@ def main():
     outputFileNameVV = 'VASTEVERB_{0}.csv'.format(dt.strftime('%Y%m%d'))
     outputFileNameO = 'OMROEP_{0}.csv'.format(dt.strftime('%Y%m%d'))
 
+    outputFileNameMain_v2 = 'final_all_opt_{0}_v2.csv'.format(dt.strftime('%Y%m%d'))
 
     # fileNameAll = 'all_20180104.csv'
 
@@ -296,7 +297,7 @@ def main():
 
     for name in [x for x in list_of_files if "Zenda" not in x]:
         # print(os.path.join(fileDirectory, name))
-        df_current = pd.read_csv(os.path.join(fileDirectory, name), encoding='utf8')
+        df_current = pd.read_csv(os.path.join(fileDirectory, name), encoding='utf8', low_memory=False)
         # print(df_current.head())
         if ~df_current.empty:
             df = pd.concat([df, df_current],sort=False)
@@ -430,25 +431,25 @@ def main():
     ##print(df)
     # df=df.head(n=100)
 
-    df = df.dropna(subset=['Frequentie'])
+    df = df.dropna(subset=['FREQUENTIE'])
 
-    df['Hoogte'] = df['Hoogte'].str.replace(' m', '').astype(float) if 'Hoogte' in df.columns else None
-    df['Hoofdstraalrichting'] = df['Hoofdstraalrichting'].str.replace(' gr', '') if 'Hoofdstraalrichting' in df.columns else None
-    # print(df.loc[df.Frequentie.isnull(),])
-    df['Frequentie'] = df['Frequentie'].apply(lambda x: GHz_to_MHz(x))
-    df['Frequentie'] = df['Frequentie'].str.replace(' MHz', '')
+    # df['Hoogte'] = df['HOOGTE'].str.replace(' m', '').astype(float) if 'HOOGTE' in df.columns else None
+    # df['Hoofdstraalrichting'] = df['Hoofdstraalrichting'].str.replace(' gr', '') if 'Hoofdstraalrichting' in df.columns else None
+    # print(df.loc[df.FREQUENTIE.isnull(),])
+    df['FREQUENTIE'] = df['FREQUENTIE'].apply(lambda x: GHz_to_MHz(x))
+    df['FREQUENTIE'] = df['FREQUENTIE'].str.replace(' MHz', '')
     # df.to_csv("test.csv")
     # print(df.loc[df.Vermogen=='Niet aanwezig',])
-    df['Vermogen'] = df.Vermogen.mask(df.Vermogen=='Niet aanwezig') #if 'Vermogen' in df.columns else None
+    df['ZENDVERMOGEN'] = df.ZENDVERMOGEN.mask(df.ZENDVERMOGEN=='Niet aanwezig') #if 'Vermogen' in df.columns else None
     # print(df.loc[df.Vermogen.isna(),])
-    df['Vermogen'] = df['Vermogen'].str.replace(' dBW', '').astype(float) if 'Vermogen' in df.columns else None
+    # df['Vermogen'] = df['Vermogen'].str.replace(' dBW', '').astype(float) if 'Vermogen' in df.columns else None
     # df['Veilige afstand'] = df['Veilige afstand'].str.replace(' m', '').astype(float)
-    df['Veilige afstand'] = df['Veilige afstand'].str.replace(' m', '').astype(float) if 'Veilige afstand' in df.columns else None
+    # df['Veilige afstand'] = df['Veilige afstand'].str.replace(' m', '').astype(float) if 'Veilige afstand' in df.columns else None
 
     # df[['Frequentie1', 'Frequentie2']] = pd.DataFrame(df.Frequentie.str.split('-', 1).tolist(),
     #                                                   columns=['Frequentie1', 'Frequentie2'])
     # df['Frequentie1'], df['Frequentie2'] = df['Frequentie'].str.split('-', 1).str
-    df[['Frequentie1', 'Frequentie2']] = df['Frequentie'].str.split('-', n=1, expand=True)
+    df[['Frequentie1', 'Frequentie2']] = df['FREQUENTIE'].str.split('-', n=1, expand=True)
     df['Frequentie1'] = df['Frequentie1'].astype(float)
     df['Frequentie2'] = df['Frequentie2'].astype(float)
 
@@ -468,62 +469,113 @@ def main():
     df['lon'] = df.apply(lon, axis=1)
 
     # print(df.head())
+    df.to_csv(os.path.join(outputDirectory, outputFileNameMain_v2), index=False, quoting=csv.QUOTE_ALL)
 
-    df.drop([
-        'SHAPE'
-        , 'Samenvatting'
-        # , 'OBJECTID'
-        # , 'id'
-        # , 'DATUM_PLAATSING'
-        # , 'DATUM_LAATSTE_AANPASSING'
-        # , 'SMALL_CELL_INDICATOR'
-    ], inplace=True, axis=1)
+
+    df_out=(df
+     .filter([
+        'SAT_CODE'
+        , 'WOONPLAATSNAAM'
+        , 'DATUM_INGEBRUIKNAME'
+        , 'HOOFDSOORT'
+        , 'GEMEENTE'
+        , 'X'
+        , 'Y'
+        , 'POSTCODE'
+        , 'HOOGTE'
+        , 'HOOFDSTRAALRICHTING'
+        , 'FREQUENTIE'
+        , 'ZENDVERMOGEN'
+        , 'VEILIGE_AFSTAND'
+        , 'Frequentie1'
+        , 'Frequentie2'
+        , 'Technology'
+        , 'Operator'
+        , 'Band'
+        , 'Outdoor_Macro'
+        , 'Load_Date'
+        , 'lat'
+        , 'lon'
+        , 'ID_LOCATIE'
+        , 'ID_CELL'
+        , 'DATUM_PLAATSING'
+        , 'DATUM_WIJZIGING'
+        , 'SMALL_CELL_INDICATOR'
+      ])
+     .rename(columns={
+        'GEMEENTE': 'GEMNAAM'
+        , 'X': 'x'
+        , 'Y': 'y'
+        , 'POSTCODE': 'postcode'
+        , 'HOOGTE': 'Hoogte'
+        , 'HOOFDSTRAALRICHTING': 'Hoofdstraalrichting'
+        , 'FREQUENTIE': 'Frequentie'
+        , 'ZENDVERMOGEN': 'Vermogen'
+        , 'VEILIGE_AFSTAND': 'Veilige afstand'
+        , 'ID_LOCATIE': 'OBJECTID'
+        , 'ID_CELL': 'id'
+        , 'DATUM_WIJZIGING': 'DATUM_LAATSTE_AANPASSING'
+     })
+    )
+
+    # df.drop([
+    #     'ID_ANTENNE'
+    #     , 'Samenvatting'
+    #     # , 'OBJECTID'
+    #     # , 'id'
+    #     # , 'DATUM_PLAATSING'
+    #     # , 'DATUM_LAATSTE_AANPASSING'
+    #     # , 'SMALL_CELL_INDICATOR'
+    # ], inplace=True, axis=1)
 
     # print(df.columns)
-    df=df[[
-        "SAT_CODE",
-        "WOONPLAATSNAAM",
-        "DATUM_INGEBRUIKNAME",
-        "HOOFDSOORT",
-        "GEMNAAM",
-        "x",
-        "y",
-        "postcode",
-        "Hoogte",
-        "Hoofdstraalrichting",
-        "Frequentie",
-        "Vermogen",
-        "Veilige afstand",
-        "Frequentie1",
-        "Frequentie2",
-        "Technology",
-        "Operator",
-        "Band",
-        "Outdoor_Macro",
-        "Load_Date",
-        "lat",
-        "lon",
-        "OBJECTID",
-        "id",
-        "DATUM_PLAATSING",
-        "DATUM_LAATSTE_AANPASSING",
-        "SMALL_CELL_INDICATOR"
-    ]]
+    # df=df[[
+    #     "SAT_CODE",
+    #     "WOONPLAATSNAAM",
+    #     "DATUM_INGEBRUIKNAME",
+    #     "HOOFDSOORT",
+    #     "GEMNAAM",
+    #     "x",
+    #     "y",
+    #     "postcode",
+    #     "Hoogte",
+    #     "Hoofdstraalrichting",
+    #     "Frequentie",
+    #     "Vermogen",
+    #     "Veilige afstand",
+    #     "Frequentie1",
+    #     "Frequentie2",
+    #     "Technology",
+    #     "Operator",
+    #     "Band",
+    #     "Outdoor_Macro",
+    #     "Load_Date",
+    #     "lat",
+    #     "lon",
+    #     "OBJECTID",
+    #     "id",
+    #     "DATUM_PLAATSING",
+    #     "DATUM_LAATSTE_AANPASSING",
+    #     "SMALL_CELL_INDICATOR"
+    # ]]
 
-    df = df.drop_duplicates()
-    df["SMALL_CELL_INDICATOR"] = df["SMALL_CELL_INDICATOR"].replace({'Null': None})
-    df["DATUM_LAATSTE_AANPASSING"] = df["DATUM_LAATSTE_AANPASSING"].replace({'Null': None})
+    df_out = df_out.drop_duplicates()
+    df_out["SMALL_CELL_INDICATOR"] = df_out["SMALL_CELL_INDICATOR"].replace({'Null': None})
+    df_out["DATUM_LAATSTE_AANPASSING"] = df_out["DATUM_LAATSTE_AANPASSING"].replace({'Null': None})
 
-    df.loc[(df['Band'] == '3500') & (df['Operator'] == 'Unidentified'), 'Operator'] = 'Odido'
+
+    df_out["WOONPLAATSNAAM"] = df_out["WOONPLAATSNAAM"].replace({np.nan: 'Null'})
+
+    # df_out.loc[(df_out['Band'] == '3500') & (df_out['Operator'] == 'Unidentified'), 'Operator'] = 'Odido'
 
 
 
     # print(df.head())
     # print(os.path.join(outputDirectory, outputfileName))
-    df.loc[~df.HOOFDSOORT.str.contains('|'.join(['OVERIGMOBIEL', 'VASTE VERB', 'OMROEP'])),].to_csv(os.path.join(outputDirectory, outputFileNameMain), index=False, quoting=csv.QUOTE_ALL)
-    df.loc[df.HOOFDSOORT == 'OMROEP',].to_csv(os.path.join(outputDirectory,outputFileNameO), index=False, quoting=csv.QUOTE_ALL)
-    df.loc[df.HOOFDSOORT == 'VASTE VERB',].to_csv(os.path.join(outputDirectory,outputFileNameVV), index=False, quoting=csv.QUOTE_ALL)
-    df.loc[df.HOOFDSOORT == 'OVERIGMOBIEL',].to_csv(os.path.join(outputDirectory,outputFileNameOM), index=False, quoting=csv.QUOTE_ALL)
+    df_out.loc[~df_out.HOOFDSOORT.str.contains('|'.join(['OVERIGMOBIEL', 'VASTE VERB', 'OMROEP'])),].to_csv(os.path.join(outputDirectory, outputFileNameMain), index=False, quoting=csv.QUOTE_ALL)
+    df_out.loc[df_out.HOOFDSOORT == 'OMROEP',].to_csv(os.path.join(outputDirectory,outputFileNameO), index=False, quoting=csv.QUOTE_ALL)
+    df_out.loc[df_out.HOOFDSOORT == 'VASTE VERB',].to_csv(os.path.join(outputDirectory,outputFileNameVV), index=False, quoting=csv.QUOTE_ALL)
+    df_out.loc[df_out.HOOFDSOORT == 'OVERIGMOBIEL',].to_csv(os.path.join(outputDirectory,outputFileNameOM), index=False, quoting=csv.QUOTE_ALL)
     print('Data cleaned and stored localy in csv file')
 
     # df = df.replace({np.nan: None})
