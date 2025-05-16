@@ -1,7 +1,7 @@
-"""Retrieves antenna ids from www.antennebureau.nl database and saving data in csv file.
+"""Retrieves antenna information from www.antennebureau.nl database and saving data in csv file.
 
 Usage:
-    python3 playground.py
+    python antenneregisterparser.py
 """
 
 import os
@@ -22,24 +22,6 @@ pd.set_option('display.max_columns',desired_columns)
 pd.set_option('display.max_colwidth', desired_column_width)
 
 
-# def layers(*args):
-#     """Creates string for url with all layers that are set as an argument.
-#
-#     Args:
-#         args: Layers that needs to be fetched separated by comma.
-#
-#     Returns:
-#         A sting containing layers in the form that can be included in url.
-#     """
-#     layerString = ''
-#     for ar in args:
-#         if len(layerString) == 0:
-#             layerString += '%3A' + str(ar)
-#         else:
-#             layerString += '%2C' + str(ar)
-#     return layerString
-
-
 def equally_split_list(zmin, zmax, zdelta):
     """Creates list of equally separated numbers between two values, zmin and zmax.
 
@@ -54,52 +36,6 @@ def equally_split_list(zmin, zmax, zdelta):
     ls = list(range(zmin, zmax, round((zmax-zmin)/zdelta)))
     return ls
 
-
-# def url_generator(xmin, xmax, ymin, ymax, eps):
-#     """Creates url string for fetching antenna ids.
-#
-#     Args:
-#         xmin: The smallest x coordinate.
-#         xmax: The largest x coordinate.
-#         ymin: The smallest y coordinate.
-#         ymax: The largest y coordinate.
-#         eps: Extra space to assure overlap between neighboring rectangular.
-#         layerstring: Output string of layers(*args) function.
-#
-#     Returns:
-#         A url string.
-#     """
-#     url =f'https://antenneregister.nl/mapserver/wfs/' \
-#           '?outputformat=application%2Fjson&request=GetFeature&service=WFS&version=2.0.0&srsname=EPSG%3A28992&' \
-#           'bbox={0}%' \
-#           '2C{1}%' \
-#           '2C{2}%' \
-#           '2C{3}' \
-#           '&typename=Antennes'.format(xmin, ymin, xmax, ymax+eps)
-#
-#
-#     # url = 'https://gisextern.dictu.nl/arcgis/rest/services/Antenneregister/Antennes_extern' \
-#     #       '/MapServer/identify?f=json&geometry=%7B%22rings%22%3A%5B%5B%' \
-#     #       '5B{0}%' \
-#     #       '2C{1}%5D%2C%' \
-#     #       '5B{2}%' \
-#     #       '2C{1}%5D%2C%' \
-#     #       '5B{2}%' \
-#     #       '2C{3}%5D%2C%' \
-#     #       '5B{0}%' \
-#     #       '2C{3}%5D%2C%' \
-#     #       '5B{0}%' \
-#     #       '2C{1}%' \
-#     #       '5D%5D%5D%2C%22spatialReference%22%3A%7B%22wkid%22%3A28992%7D%7D&' \
-#     #       'tolerance=5&returnGeometry=true&mapExtent=%7B%22' \
-#     #       'xmin%22%3A0%2C%22' \
-#     #       'ymin%22%3A0%2C%22' \
-#     #       'xmax%22%3A0%2C%22' \
-#     #       'ymax%22%3A0%2C%22' \
-#     #       'spatialReference%22%3A%7B%22wkid%22%3A28992%7D%7D&' \
-#     #       'imageDisplay=811%2C421%2C96&geometryType=esriGeometryPolygon&sr=28992&' \
-#     #       'layers=all{4}'.format(xmin, ymin, xmax, ymax+eps, layerstring)
-#     return url
 
 def user_agent_string():
     """Creates user agent to be included into request.
@@ -266,41 +202,8 @@ def make_request_headers(type):
         raise ValueError(f"Unsupported type: {type}")
 
 
-# def url_response(session, url):
-#     """Creates url string for fetching antenna ids.
-#
-#     Args:
-#         session: Requests session.
-#         url: URL string.
-#
-#     Returns:
-#         A json formatted response of url.
-#     """
-#     headers = {'User-Agent': user_agent_string('')}
-#     response = None
-#     # request the URL and parse the JSON
-#     try:
-#         response = session.get(url, headers=headers)
-#         out = response.json()
-#         print('out: ', out)
-#     except requests.exceptions.Timeout:
-#         print('Timeout Error for url={0}'.format(url))
-#         out = {'results': []}
-#     except requests.exceptions.ConnectionError:
-#         print('Connection Error for url={0}'.format(url))
-#         out = {'results': []}
-#     except Exception as e:
-#         print(f"Unexpected error for url={url}: {e}")
-#         out = {'results': []}
-#
-#     if response:
-#         print('response.json: ', response.json())
-#
-#     return out
-
-
 def list_of_locations(xmin, xmax, ylist, eps):
-    """Fetches partial information from antenna locations.
+    """Fetches information for locations.
 
     Args:
         xmin: The smallest x coordinate.
@@ -320,9 +223,6 @@ def list_of_locations(xmin, xmax, ylist, eps):
         #  print(ylist[i], ylist[i+1])
         ymin = ylist[i]
         ymax = ylist[i+1]
-        # URL definition
-        # url =url_generator(xmin, xmax, ymin, ymax, eps)
-        # print(i, ': ', url)
 
         params = make_request_params_locations(xmin, ymin, xmax, ymax, eps)
         # print('params: ', params)
@@ -340,7 +240,7 @@ def list_of_locations(xmin, xmax, ylist, eps):
             response = make_request(session=s, method='get', base_url=base_url, params=params, headers=headers)
 
         if i%1000==0:
-            n_random = random.randint(5, 15)
+            n_random = random.randint(25, 35)
             print('sleeping for {}sec'.format(n_random))
             time.sleep(n_random)
         elif i%100==0:
@@ -348,18 +248,6 @@ def list_of_locations(xmin, xmax, ylist, eps):
             print('sleeping for {}sec'.format(n_random))
             time.sleep(n_random)
 
-        # inputLocs =response['features']
-
-        # # inputLocs =['results']
-
-        # print('inputLocs: ', inputLocs)
-
-        # for x in inputLocs: # loop to get all the antenna ids and add them into list
-        #     # print(type(x))
-        #     attrs = x['attributes']
-        #     # print(attrs)
-        #     outputLocs.append(attrs)
-        #     # print(outputLocs)
         outputLocs.append(response)
         # print(outputLocs)
     return outputLocs
@@ -367,7 +255,7 @@ def list_of_locations(xmin, xmax, ylist, eps):
 
 def extract_antennas_grouped(geojson_list):
     """
-    Extracts antenna data from a list of GeoJSON-like dicts,
+    Extracts location information from a list of GeoJSON-like dicts,
     keeping ANT_IDS and HOOFDSOORT as lists (not exploding into rows).
 
     Returns a pandas DataFrame.
@@ -377,56 +265,9 @@ def extract_antennas_grouped(geojson_list):
     for geojson in geojson_list:
         for feature in geojson.get("features", []):
             props = feature.get("properties", {}).copy()
-            # coords = feature.get("geometry", {}).get("coordinates", [None, None])
-
-            # Convert comma-separated strings to lists
-            # props["ANT_IDS"] = [s.strip() for s in props.get("ANT_IDS", "").split(",") if s.strip()]
-            # props["HOOFDSOORT"] = [s.strip() for s in props.get("HOOFDSOORT", "").split(",") if s.strip()]
-
-            # props["geometry_x"] = coords[0]
-            # props["geometry_y"] = coords[1]
-
             records.append(props)
 
     return pd.DataFrame(records)
-
-
-# def extract_antennas_from_geojson_list(geojson_list):
-#     """
-#     Extracts and flattens antenna data from a list of GeoJSON-like dictionaries.
-#     Returns a pandas DataFrame with one row per ANT_ID and matched HOOFDSOORT.
-#     """
-#     all_records = []
-#
-#     for geojson in geojson_list:
-#         features = geojson.get("features", [])
-#         if not features:
-#             continue  # Skip if no features
-#
-#         for feature in features:
-#             props = feature.get("properties", {}).copy()
-#             coords = feature.get("geometry", {}).get("coordinates", [None, None])
-#
-#             ant_ids = props.pop("ANT_IDS", "")
-#             hoofsoort = props.pop("HOOFDSOORT", "")
-#
-#             ant_id_list = [id_.strip() for id_ in ant_ids.split(",") if id_.strip()]
-#             hoofsoort_list = [h.strip() for h in hoofsoort.split(",") if h.strip()]
-#
-#             # Match ANT_IDS and HOOFDSOORT by position
-#             if len(ant_id_list) != len(hoofsoort_list):
-#                 print(f"⚠️ Mismatch in lengths for ID {props.get('ID')}: ANT_IDS={ant_id_list}, HOOFDSOORT={hoofsoort_list}")
-#                 continue
-#
-#             for ant_id, soort in zip(ant_id_list, hoofsoort_list):
-#                 record = props.copy()
-#                 record["ANT_ID"] = ant_id
-#                 record["HOOFDSOORT"] = soort
-#                 record["longitude"] = coords[0]
-#                 record["latitude"] = coords[1]
-#                 all_records.append(record)
-#
-#     return pd.DataFrame(all_records)
 
 
 def formating_date(dateString):
@@ -467,44 +308,7 @@ def save_df_in_csv(df, dir, file):
     print('File has been exported!')
 
 
-def url_string(tech, id):
-    """Creates url string for fetching antenna frequency information.
-
-    Args:
-        id: ID of the location.
-        tech: Technology indicator that is being parsed. format of argument is: 'LTE', 'UMTS', 'GSM', 'IoT'. Any other string will result in default value.
-
-    Returns:
-        A url string.
-    """
-    return {
-        'NR':           'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/11/datalinks/DETAILS_WIMAX/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
-        'LTE':          'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/7/datalinks/DETAILS_LTE/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
-        'UMTS':         'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/4/datalinks/DETAILS2_UMTS/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
-        'GSM':          'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/1/datalinks/DETAILS_GSM/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
-        'IoT':          'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/23/datalinks/DETAILS2_WIMAX/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
-        'OverigMobile': 'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/23/datalinks/DETAILS2_OVER/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
-        'VasteVerb':    'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/20/datalinks/DETAILS2_VAST/link?maxRecords=&pff_ID={0}&f=json#'.format(id),
-        'Omroep':       'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/14/datalinks/DETAILS2_OMROEP/link?maxRecords=&pff_ID={0}&f=json#'.format(id)
-    }.get(tech, 'https://antenneregister.nl/Geocortex/Essentials/REST/Sites/Antennes_extern/map/mapservices/9/layers/7/datalinks/DETAILS_LTE/link?maxRecords=&pff_ID={0}&f=json#'.format(id))
-
-
-def from_dict_to_list(rowlist, rows, id):
-    """Loops to get data from dicts and puts it into convenient list form.
-
-    Returns:
-        A list of rows for each id.
-    """
-    for row in rowlist: # loop to get data from dicts and put it into convenient list form
-        row['row'].append(id)
-        rows.append(row['row'])
-
-
 def url_response_id(session, id_list):
-    # url = url_string(technology, id)
-    # # print(url)
-    # headers = {'User-Agent': user_agent_string(technology)}
-    # # request the URL and parse the JSON
 
     # print(id_list)
 
@@ -537,15 +341,15 @@ def main():
     # definition of vertices of rectangle that fully covers the Netherlands on the Antennaregister map
     xMin = 10400
     xMax = 278000
-    # yMin = 306000
-    # yMax = 640000
-    yMin = 490000
-    yMax = 500000
+    yMin = 306000
+    yMax = 640000
+    # yMin = 490000
+    # yMax = 500000
 
     # number of small rectangles that we split above big rectangle
-    yDelta = 2
-    # yDelta = 6000
-    epsilon = 10
+    # yDelta = 2
+    yDelta = 12000
+    epsilon = 1
 
     yList = equally_split_list(yMin, yMax+1, yDelta)
     print(yList)
@@ -562,12 +366,6 @@ def main():
     # writing above dataframe into a file
     save_df_in_csv(dfIDs,fileDirectory, fileNameIDs)
 
-    # dfIDs = pd.read_csv('D:\\Giorgi\\Antenneregister\\ids_all_20250514.csv')
-    # dfIDs = pd.read_csv('D:\\Giorgi\\Antenneregister\\ids_overig_opt_20210618.csv')
-
-    # dfIDs['IDS_ANTENNE'] = dfIDs['IDS_ANTENNE'].apply(ast.literal_eval)
-    # dfIDs['HOOFDSOORT'] = dfIDs['HOOFDSOORT'].apply(ast.literal_eval)
-
     dfIDs["IDS_ANTENNE"] = dfIDs["IDS_ANTENNE"].apply(lambda x: [s.strip() for s in x.split(",")] if isinstance(x, str) else x)
     dfIDs["HOOFDSOORT"] = dfIDs["HOOFDSOORT"].apply(lambda x: [s.strip() for s in x.split(",")] if isinstance(x, str) else x)
 
@@ -576,7 +374,6 @@ def main():
     df_TDAB = dfIDs[dfIDs.OMROEP == 1]
     df_ZM = dfIDs[dfIDs.ZENDAMATEURS == 1]
     df_VV = dfIDs[dfIDs.VASTE_VERB == 1]
-
 
     # save_df_in_csv(df_ZM, fileDirectory, '{0}_opt_{1}.csv'.format('ZendaMateurs', today.strftime('%Y%m%d')))
 
@@ -633,8 +430,6 @@ def main():
             , right_on=['ID_ANTENNE']
         )
 
-
-
         df_out = (df_all.filter([
              'ID_LOCATIE'
             , 'ID_ANTENNE'
@@ -662,41 +457,6 @@ def main():
         outFileName = '{0}_opt_{1}.csv'.format(technology, today.strftime('%Y%m%d'))
         save_df_in_csv(df_out,fileDirectory, outFileName)
 
-        # idList = df['id'].tolist()
-        # rows = []
-        # print('Parsing antenna details for {0} ids ... '.format(technology))
-        # print('Parsing {0} antenna details started on {1}.'.format(technology, time.strftime("%c")))
-        #
-        # # looping through all antenna ids, creating url for each ids, requesting and getting frequency data and organizing them into dataframe
-        # s = requests.Session()
-        # # m = 0
-        # for id in idList:
-        #     # URL definition
-        #     response = url_response_id(technology, id, s)
-        #     # response = requests.get(url, headers=headers)
-        #     # response.raise_for_status() # raise exception if invalid response
-        #     # print(response.json())
-        #     if len(response.json()['results']) != 0:
-        #         inputFrequencies = response.json()['results'][0]
-        #         # column names for the frequency dataframe
-        #         columnList = inputFrequencies['linkedData']['columns']
-        #         columnList.append('id')  # adds 'id' to column names
-        #         #  list of dicts with frequency information
-        #         rowList = inputFrequencies['linkedData']['rows']
-        #         # print(rowList)
-        #         # print(rows)
-        #         # loop to get data from dicts and put it into convenient list form
-        #         from_dict_to_list(rowList, rows, id)
-        #
-        #
-        # dfFrequencies = pd.DataFrame(rows, columns=columnList)
-        # # print(dfFrequencies)
-        # #  joining two dataframes
-        # df_out = pd.merge(df, dfFrequencies, how='left', left_on=['id'], right_on=['id'])
-        # # writing final dataframe to local file
-        # outFileName = '{0}_opt_{1}.csv'.format(technology, today.strftime('%Y%m%d'))
-        # save_df_in_csv(df_out,fileDirectory, outFileName)
-
     t1 = time.time()
     i, d = divmod((t1 - t0) / 60 / 60, 1)
 
@@ -705,4 +465,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main() # The 0th arg is the module filename
+    main()
