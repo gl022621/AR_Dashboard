@@ -176,8 +176,9 @@ def technology1(value):
 
 
 def outdoor_macro(row):
-    row = row.fillna('15')
-    if '-' in str(row['HOOFDSTRAALRICHTING']) or row['ZENDVERMOGEN'] < 15:
+    if pd.isnull(row['ZENDVERMOGEN']):
+        row['ZENDVERMOGEN'] = 15
+    if pd.isnull(row['HOOFDSTRAALRICHTING']) or '-' in  str(row['HOOFDSTRAALRICHTING']) or row['ZENDVERMOGEN'] < 15:
         if (row['Technology'] == 'NB-IoT') or (row['Band'] == '2600TDD' and row['Operator'] == 'KPN' and row['ZENDVERMOGEN']==12.3):
             return 'Yes'
         else:
@@ -231,8 +232,8 @@ def GHz_to_MHz(row):
 #################################################################
 
 def main():
-    dt = datetime.today()
-    # dt = datetime.strptime('20241027', '%Y%m%d')
+    # dt = datetime.today()
+    dt = datetime.strptime('20250628', '%Y%m%d')
 
     fileDirectory = 'D:\\Giorgi\\Antenneregister'
     outputDirectory = 'D:\\Giorgi\\Antenneregister\\QV file'
@@ -342,7 +343,6 @@ def main():
     df['Operator'] = df['Frequentie1'].apply(lambda x: operator(x, frequencyListOdido, frequencyListKPN, frequencyListVodafone))
     df['Band'] = df['Frequentie1'].apply(lambda x: frequency_band(x))
 
-
     df['Outdoor_Macro'] = df.apply(outdoor_macro, axis=1)
     df['Load_Date'] = (dt- timedelta(15)).strftime('%Y-%m')
 
@@ -412,21 +412,21 @@ def main():
     df_out.loc[df_out.HOOFDSOORT == 'OVERIGMOBIEL',].to_csv(os.path.join(outputDirectory,outputFileNameOM), index=False, quoting=csv.QUOTE_ALL)
     print('Data cleaned and stored localy in csv file')
 
-    print('Trying to store cleaned data on sftp location')
-    hostname = "172.27.0.69"
-    username = "ardashboard"
-    keyFile = "D:\\Giorgi\\Antenneregister\\Useful files\\ardashboard_key"
-    cnopts = pysftp.CnOpts()
-    cnopts.hostkeys = None
-
-    local_path = os.path.join(outputDirectory, outputFileNameMain)
-    remote_path = "/{}".format(outputFileNameMain)
-
-    with pysftp.Connection(hostname, username=username, private_key=keyFile, cnopts=cnopts) as sftp:
-        print("Connection succesfully stablished ... ")
-        sftp.put(local_path, remote_path)
-
-    print('Data stored on sftp location')
+    # print('Trying to store cleaned data on sftp location')
+    # hostname = "172.27.0.69"
+    # username = "ardashboard"
+    # keyFile = "D:\\Giorgi\\Antenneregister\\Useful files\\ardashboard_key"
+    # cnopts = pysftp.CnOpts()
+    # cnopts.hostkeys = None
+    #
+    # local_path = os.path.join(outputDirectory, outputFileNameMain)
+    # remote_path = "/{}".format(outputFileNameMain)
+    #
+    # with pysftp.Connection(hostname, username=username, private_key=keyFile, cnopts=cnopts) as sftp:
+    #     print("Connection succesfully stablished ... ")
+    #     sftp.put(local_path, remote_path)
+    #
+    # print('Data stored on sftp location')
 
     # # Example usage
     # send_email_with_attachment(sender='gio.labadze+antenneregister@gmail.com',
